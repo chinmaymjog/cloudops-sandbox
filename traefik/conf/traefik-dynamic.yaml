@@ -1,0 +1,14 @@
+# traefik-dynamic.yaml
+http:
+  routers:
+    mytestapp:
+      rule: "Host(`nginx.lab.ilearndevops.in`)"
+      service: mytestapp
+      entryPoints:
+        - web
+
+  services:
+    mytestapp:
+      loadBalancer:
+        servers:
+          - url: "http://k3d-prod-serverlb:80"

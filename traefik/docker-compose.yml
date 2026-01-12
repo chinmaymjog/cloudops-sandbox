@@ -1,0 +1,34 @@
+services:
+  traefik:
+    image: traefik
+    container_name: traefik
+    hostname: traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./conf:/etc/traefik
+      - ./log:/var/log/traefik
+      - ./certs:/certs
+    networks:
+      homelab:
+        ipv4_address: 192.168.28.101
+    environment:
+      - CF_API_EMAIL=${CF_API_EMAIL}
+      - CF_API_KEY=${CF_API_KEY}
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.traefik.rule=Host(`traefik.lab.ilearndevops.in`)
+      - traefik.http.routers.traefik.entrypoints=websecure
+      - traefik.http.routers.traefik.tls.certresolver=myresolver
+      - traefik.http.routers.traefik.tls.domains[0].main=*.lab.ilearndevops.in
+      - traefik.http.routers.traefik.service=api@internal
+      - traefik.http.routers.traefik.middlewares=auth
+      - traefik.http.middlewares.auth.basicauth.users=${BASIC_AUTH}
+
+networks:
+  homelab:
+    external: true
