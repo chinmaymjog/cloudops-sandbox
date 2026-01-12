@@ -1,0 +1,36 @@
+before_script:
+  ## https://docs.gitlab.com/ci/jobs/ssh_keys/
+  - 'command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )'
+  - eval $(ssh-agent -s)
+  - chmod 400 "$SSH_PRIVATE_KEY"
+  - ssh-add "$SSH_PRIVATE_KEY"
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+
+deploy_runner:
+  stage: deploy
+  rules:
+    - changes: 
+      - gitlab-runner/**
+  script:
+    - ssh $SSH_USER@$CONTROLLER "
+        cd /tools/traefik &&
+        git pull && 
+        envsubst < config.sample > config/config.toml &&
+        docker compose pull &&
+        docker compose up -d"
+  when: manual
+
+deploy_traefik:
+  stage: deploy
+  rules:
+    - changes:
+      - traefik/**
+  script:
+    - ssh $SSH_USER@$CONTROLLER "
+        cd /tools/traefik &&
+        git pull && 
+        envsubst < env.sample > .env &&
+        docker compose pull &&
+        docker compose up -d"
+  when: manual
