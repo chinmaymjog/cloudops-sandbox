@@ -1,17 +1,14 @@
-concurrent = 1
+concurrent = 4
 check_interval = 0
 shutdown_timeout = 0
 
 [session_server]
-  session_timeout = 1800
+  session_timeout = 3600
 
 [[runners]]
   name = "gitlab-runner"
-  url = "http://gitlab"
-  id = 34
-  token = "REDACTED_GITLAB_RUNNER_TOKEN"
-  token_obtained_at = 2025-08-11T15:55:50Z
-  token_expires_at = 0001-01-01T00:00:00Z
+  url = "http://gitlab.com"
+  token = $GITLAB_RUNNER_TOKEN
   executor = "docker"
   [runners.cache]
     MaxUploadedArchiveSize = 0
@@ -28,5 +25,4 @@ shutdown_timeout = 0
     volumes = ["/cache","/certs/"]
     shm_size = 0
     network_mtu = 0
-    dns = ["192.168.28.100"]
     network_mode = "homelab"
