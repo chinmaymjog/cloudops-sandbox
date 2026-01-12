@@ -1,3 +1,6 @@
+stages:
+  - deploy
+
 before_script:
   ## https://docs.gitlab.com/ci/jobs/ssh_keys/
   - 'command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )'
@@ -10,8 +13,8 @@ before_script:
 deploy_runner:
   stage: deploy
   rules:
-    - changes: 
-      - gitlab-runner/**
+    - changes:
+        - gitlab-runner/**
   script:
     - ssh -p $SSH_PORT $SSH_USER@$CONTROLLER "
         cd /tools/traefik &&
@@ -25,7 +28,7 @@ deploy_traefik:
   stage: deploy
   rules:
     - changes:
-      - traefik/**
+        - traefik/**
   script:
     - ssh -p $SSH_PORT $SSH_USER@$CONTROLLER "
         cd /tools/traefik &&
