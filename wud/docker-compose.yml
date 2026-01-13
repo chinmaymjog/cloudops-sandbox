@@ -1,0 +1,22 @@
+services:
+  whatsupdocker:
+    image: getwud/wud
+    container_name: wud
+    hostname: wud
+    restart: unless-stopped
+    # ports:
+    #   - 3000:3000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - homelab
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.wud.rule=Host(`wud-${APP_DOMAIN}`)
+      - traefik.http.routers.wud.entrypoints=websecure
+      - traefik.http.routers.wud.tls.certresolver=myresolver
+      - traefik.http.services.wud.loadbalancer.server.port=3000
+
+networks:
+  homelab:
+    external: true

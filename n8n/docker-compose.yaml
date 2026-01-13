@@ -1,0 +1,28 @@
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    container_name: n8n
+    hostname: n8n
+    restart: unless-stopped
+    # ports:
+    #   - "5678:5678"
+    volumes:
+      - ./data:/home/node/.n8n
+    environment:
+      - GENERIC_TIMEZONE=Asia/Calcutta
+      - TZ=Asia/Calcutta
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_RUNNERS_ENABLED=true
+    networks:
+      - homelab
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.n8n.rule=Host(`n8n-${APP_DOMAIN}`)
+      - traefik.http.routers.n8n.entrypoints=websecure
+      - traefik.http.routers.n8n.tls.certresolver=myresolver
+      - traefik.http.services.n8n.loadbalancer.server.port=5678
+
+networks:
+  homelab:
+    external: true
+    name: homelab
