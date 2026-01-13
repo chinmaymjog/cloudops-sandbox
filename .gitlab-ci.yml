@@ -14,6 +14,21 @@ before_script:
   - chmod 644 ~/.ssh/known_hosts
   - echo "StrictHostKeyChecking no" >> ~/.ssh/config
 
+deploy_wud:
+  stage: deploy
+  rules:
+    - changes: 
+        - wud/**
+  script:
+    - envsubst < wud/env.sample > wud.env
+    - scp -P $SSH_PORT wud.env $SSH_USER@$CONTROLLER:/tools/wud/.env
+    - ssh -p $SSH_PORT $SSH_USER@$CONTROLLER "
+        cd /tools/wud &&
+        git pull && 
+        docker compose pull &&
+        docker compose up -d"
+  when: manual
+
 deploy_runner:
   stage: deploy
   rules:
@@ -39,6 +54,36 @@ deploy_traefik:
     - scp -P $SSH_PORT traefik.env $SSH_USER@$CONTROLLER:/tools/traefik/.env
     - ssh -p $SSH_PORT $SSH_USER@$CONTROLLER "
         cd /tools/traefik &&
+        git pull && 
+        docker compose pull &&
+        docker compose up -d"
+  when: manual
+
+deploy_portainer:
+  stage: deploy
+  rules:
+    - changes: 
+        - portainer/**
+  script:
+    - envsubst < portainer/env.sample > portainer.env
+    - scp -P $SSH_PORT portainer.env $SSH_USER@$CONTROLLER:/tools/portainer/.env
+    - ssh -p $SSH_PORT $SSH_USER@$CONTROLLER "
+        cd /tools/portainer &&
+        git pull && 
+        docker compose pull &&
+        docker compose up -d"
+  when: manual
+
+deploy_mysql:
+  stage: deploy
+  rules:
+    - changes: 
+        - mysql/**
+  script:
+    - envsubst < mysql/env.sample > mysql.env
+    - scp -P $SSH_PORT mysql.env $SSH_USER@$CONTROLLER:/tools/mysql/.env
+    - ssh -p $SSH_PORT $SSH_USER@$CONTROLLER "
+        cd /tools/mysql &&
         git pull && 
         docker compose pull &&
         docker compose up -d"
