@@ -1,0 +1,39 @@
+services:
+  mysql:
+    image: mysql:latest
+    user: mysql
+    container_name: mysql
+    hostname: mysql
+    restart: unless-stopped
+    # ports:
+    #   - "3306:3306"
+    volumes:
+      - ./data:/var/lib/mysql
+    networks:
+      - control-plane
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+
+  # phpmyadmin:
+  #   image: phpmyadmin/phpmyadmin:5.2.2
+  #   container_name: phpmyadmin
+  #   hostname: phpmyadmin
+  #   restart: unless-stopped
+  #   # ports:
+  #   #   - "8080:80"
+  #   depends_on:
+  #     - mysql
+  #   networks:
+  #     - control-plane
+  #   environment:
+  #     - PMA_ARBITRARY=1
+  #   labels:
+  #     - traefik.enable=true
+  #     - traefik.http.routers.phpmyadmin.rule=Host(`phpmyadmin-${APP_DOMAIN}`)
+  #     - traefik.http.routers.phpmyadmin.entrypoints=websecure
+  #     - traefik.http.routers.phpmyadmin.tls.certresolver=myresolver
+  #     - traefik.http.services.phpmyadmin.loadbalancer.server.port=80
+
+networks:
+  control-plane:
+    external: true

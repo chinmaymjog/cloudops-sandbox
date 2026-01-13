@@ -1,0 +1,35 @@
+services:
+  postgresql:
+    image: postgres:17.6
+    user: postgres
+    container_name: postgresql
+    hostname: postgresql
+    restart: unless-stopped
+    # ports:
+    #   - "5432:5432"
+    networks:
+      - control-plane
+    volumes:
+      - ./data:/var/lib/postgresql
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+  # adminer:
+  # image: adminer
+  # container_name: adminer
+  # hostname: adminer
+  # restart: unless-stopped
+  # # ports:
+  # #   - 8080:8080
+  # networks:
+  #   - control-plane
+  # labels:
+  #   - traefik.enable=true
+  #   - traefik.http.routers.adminer.rule=Host(`adminer-${APP_DOMAIN}`)
+  #   - traefik.http.routers.adminer.entrypoints=websecure
+  #   - traefik.http.routers.adminer.tls.certresolver=myresolver
+  #   - traefik.http.services.adminer.loadbalancer.server.port=8080
+
+networks:
+  control-plane:
+    external: true
