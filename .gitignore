@@ -1,0 +1,42 @@
+.vscode
+.DS_Store
+.env
+
+#dnsmasq
+dnsmasq
+
+# gitlab
+gitlab-ce
+.runner_system_id
+config.toml
+
+# grafana
+grafana
+
+# keycloak
+keycloak
+
+# mysql
+mysql/data
+
+#n8n
+n8n/data
+
+# pgsql
+pgsql/data
+
+# portainer
+portainer/data
+
+# prometheus
+prometheus
+
+#traefik
+traefik/certs
+traefik/log
+
+bootstrap.sh
+digitalocean
+init.sh
+Notes
+pre-push.sh
