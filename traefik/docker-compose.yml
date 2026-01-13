@@ -21,7 +21,7 @@ services:
       - CF_API_KEY=${CF_API_KEY}
     labels:
       - traefik.enable=true
-      - traefik.http.routers.traefik.rule=Host(`traefik.lab.ilearndevops.in`)
+      - traefik.http.routers.traefik.rule=Host(`traefik-${APP_DOMAIN}`)
       - traefik.http.routers.traefik.entrypoints=websecure
       - traefik.http.routers.traefik.tls.certresolver=myresolver
       - traefik.http.routers.traefik.tls.domains[0].main=*.lab.ilearndevops.in

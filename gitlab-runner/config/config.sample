@@ -8,7 +8,7 @@ shutdown_timeout = 0
 [[runners]]
   name = "gitlab-runner"
   url = "http://gitlab.com"
-  token = $GITLAB_RUNNER_TOKEN
+  token = ${GITLAB_RUNNER_TOKEN}
   executor = "docker"
   [runners.cache]
     MaxUploadedArchiveSize = 0
@@ -25,4 +25,3 @@ shutdown_timeout = 0
     volumes = ["/cache","/certs/"]
     shm_size = 0
     network_mtu = 0
-    network_mode = "homelab"
