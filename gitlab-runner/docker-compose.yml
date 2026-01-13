@@ -5,7 +5,7 @@ services:
     hostname: gitlab-runner
     restart: unless-stopped
     volumes:
-      - ./gitlab-runner/config:/etc/gitlab-runner
+      - ./config:/etc/gitlab-runner
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - homelab
