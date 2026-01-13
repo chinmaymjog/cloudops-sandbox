@@ -7,7 +7,7 @@ shutdown_timeout = 0
 
 [[runners]]
   name = "gitlab-runner"
-  url = "http://gitlab.com"
+  url = "https://gitlab.com"
   token = "${GITLAB_RUNNER_TOKEN}"
   executor = "docker"
   [runners.cache]
