@@ -35,6 +35,8 @@ prometheus
 traefik/certs
 traefik/log
 
+
+.gitlab-ci.yml-org
 bootstrap.sh
 digitalocean
 init.sh

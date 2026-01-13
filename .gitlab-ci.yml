@@ -1,90 +1,191 @@
 stages:
   - deploy
 
-before_script:
-  - apt-get update && apt-get install gettext-base -y
-  ## https://docs.gitlab.com/ci/jobs/ssh_keys/
-  - 'command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )'
-  - eval $(ssh-agent -s)
-  - chmod 400 "$SSH_PRIVATE_KEY"
-  - ssh-add "$SSH_PRIVATE_KEY"
-  - mkdir -p ~/.ssh
-  - chmod 700 ~/.ssh
-  - cp "$SSH_KNOWN_HOSTS" ~/.ssh/known_hosts
-  - chmod 644 ~/.ssh/known_hosts
-  - echo "StrictHostKeyChecking no" >> ~/.ssh/config
+variables:
+  DEPLOY_DIR: /tools
 
-deploy_wud:
+.deploy_template: &deploy_template
   stage: deploy
+  when: manual
+  before_script:
+    - apt-get update && apt-get install -y gettext-base openssh-client
+    - eval $(ssh-agent -s)
+    - chmod 400 "$SSH_PRIVATE_KEY"
+    - ssh-add "$SSH_PRIVATE_KEY"
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - cp "$SSH_KNOWN_HOSTS" ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+    - echo "StrictHostKeyChecking no" >> ~/.ssh/config
+  script:
+    - SERVICE=$SERVICE_NAME
+    - ENV_FILE="${SERVICE}/env.sample"
+    - TEMP_ENV="${SERVICE}.env"
+    
+    # Validate environment file exists
+    - |
+      if [ ! -f "$ENV_FILE" ]; then
+        echo "ERROR: $ENV_FILE not found"
+        exit 1
+      fi
+    
+    # Generate environment file from template
+    - envsubst < "$ENV_FILE" > "$TEMP_ENV"
+    
+    # Deploy to remote
+    - scp -P "$SSH_PORT" "$TEMP_ENV" "$SSH_USER@$CONTROLLER:${DEPLOY_DIR}/${SERVICE}/.env"
+    - |
+      ssh -p "$SSH_PORT" "$SSH_USER@$CONTROLLER" \
+        "cd ${DEPLOY_DIR} && \
+         git pull && \
+         cd ${DEPLOY_DIR}/${SERVICE} && \
+         docker compose pull && \
+         docker compose up -d && \
+         echo 'Deployment completed successfully'"
+    
+    # Cleanup
+    - rm -f "$TEMP_ENV"
+  after_script:
+    - rm -f "$TEMP_ENV" || true
+
+# Service deployments
+deploy_wud:
+  <<: *deploy_template
+  variables:
+    SERVICE_NAME: wud
   rules:
     - changes: 
         - wud/**
-  script:
-    - envsubst < wud/env.sample > wud.env
-    - scp -P $SSH_PORT wud.env $SSH_USER@$CONTROLLER:/tools/wud/.env
-    - ssh -p $SSH_PORT $SSH_USER@$CONTROLLER "
-        cd /tools/wud &&
-        git pull && 
-        docker compose pull &&
-        docker compose up -d"
-  when: manual
 
 deploy_runner:
-  stage: deploy
+  <<: *deploy_template
+  variables:
+    SERVICE_NAME: gitlab-runner
   rules:
     - changes:
         - gitlab-runner/**/*
   script:
-    - envsubst < gitlab-runner/config/config.sample > gitlab-runner.env
-    - scp -P $SSH_PORT gitlab-runner.env  $SSH_USER@$CONTROLLER:/tools/gitlab-runner/config/config.toml
-    - ssh -p $SSH_PORT $SSH_USER@$CONTROLLER "
-        cd /tools/gitlab-runner &&
-        git pull && 
-        docker compose pull &&
-        docker compose up -d"
-  when: manual
+    - SERVICE=$SERVICE_NAME
+    - ENV_FILE="${SERVICE}/config/config.sample"
+    - TEMP_ENV="${SERVICE}.env"
+    - REMOTE_PATH="${DEPLOY_DIR}/${SERVICE}/config/config.toml"
+    
+    # Validate environment file exists
+    - |
+      if [ ! -f "$ENV_FILE" ]; then
+        echo "ERROR: $ENV_FILE not found"
+        exit 1
+      fi
+    
+    # Generate environment file from template
+    - envsubst < "$ENV_FILE" > "$TEMP_ENV"
+    
+    # Deploy to remote
+    - scp -P "$SSH_PORT" "$TEMP_ENV" "$SSH_USER@$CONTROLLER:$REMOTE_PATH"
+    - |
+      ssh -p "$SSH_PORT" "$SSH_USER@$CONTROLLER" \
+        "cd ${DEPLOY_DIR} && \
+         git pull && \
+         cd ${DEPLOY_DIR}/${SERVICE} && \
+         docker compose pull && \
+         docker compose up -d && \
+         echo 'Deployment completed successfully'"
+    
+    # Cleanup
+    - rm -f "$TEMP_ENV"
 
 deploy_traefik:
-  stage: deploy
+  <<: *deploy_template
+  variables:
+    SERVICE_NAME: traefik
   rules:
     - changes:
         - traefik/**
-  script:
-    - envsubst < traefik/env.sample > traefik.env
-    - scp -P $SSH_PORT traefik.env $SSH_USER@$CONTROLLER:/tools/traefik/.env
-    - ssh -p $SSH_PORT $SSH_USER@$CONTROLLER "
-        cd /tools/traefik &&
-        git pull && 
-        docker compose pull &&
-        docker compose up -d"
-  when: manual
 
 deploy_portainer:
-  stage: deploy
+  <<: *deploy_template
+  variables:
+    SERVICE_NAME: portainer
   rules:
     - changes: 
         - portainer/**
-  script:
-    - envsubst < portainer/env.sample > portainer.env
-    - scp -P $SSH_PORT portainer.env $SSH_USER@$CONTROLLER:/tools/portainer/.env
-    - ssh -p $SSH_PORT $SSH_USER@$CONTROLLER "
-        cd /tools/portainer &&
-        git pull && 
-        docker compose pull &&
-        docker compose up -d"
-  when: manual
 
 deploy_mysql:
-  stage: deploy
+  <<: *deploy_template
+  variables:
+    SERVICE_NAME: mysql
   rules:
     - changes: 
         - mysql/**
-  script:
-    - envsubst < mysql/env.sample > mysql.env
-    - scp -P $SSH_PORT mysql.env $SSH_USER@$CONTROLLER:/tools/mysql/.env
-    - ssh -p $SSH_PORT $SSH_USER@$CONTROLLER "
-        cd /tools/mysql &&
-        git pull && 
-        docker compose pull &&
-        docker compose up -d"
-  when: manual
+
+deploy_pgsql:
+  <<: *deploy_template
+  variables:
+    SERVICE_NAME: pgsql
+  rules:
+    - changes:
+        - pgsql/**
+
+deploy_n8n:
+  <<: *deploy_template
+  variables:
+    SERVICE_NAME: n8n
+  rules:
+    - changes:
+        - n8n/**
+
+deploy_keycloak:
+  <<: *deploy_template
+  variables:
+    SERVICE_NAME: keycloak
+  rules:
+    - changes:
+        - keycloak/**
+
+deploy_grafana:
+  <<: *deploy_template
+  variables:
+    SERVICE_NAME: grafana
+  rules:
+    - changes:
+        - grafana/**
+
+deploy_prometheus:
+  <<: *deploy_template
+  variables:
+    SERVICE_NAME: prometheus
+  rules:
+    - changes:
+        - prometheus/**
+
+deploy_homepage:
+  <<: *deploy_template
+  variables:
+    SERVICE_NAME: homepage
+  rules:
+    - changes:
+        - homepage/**
+
+deploy_dnsmasq:
+  <<: *deploy_template
+  variables:
+    SERVICE_NAME: dnsmasq
+  rules:
+    - changes:
+        - dnsmasq/**
+
+deploy_gitlab:
+  <<: *deploy_template
+  variables:
+    SERVICE_NAME: gitlab-ce
+  rules:
+    - changes:
+        - gitlab-ce/**
+
+deploy_docker_webfarm:
+  <<: *deploy_template
+  variables:
+    SERVICE_NAME: docker-webfarm
+  rules:
+    - changes:
+        - docker-webfarm/**
