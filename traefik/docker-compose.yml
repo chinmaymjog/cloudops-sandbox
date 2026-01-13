@@ -14,7 +14,7 @@ services:
       - ./log:/var/log/traefik
       - ./certs:/certs
     networks:
-      control-plane:
+      - control-plane
 
     environment:
       - CF_API_EMAIL=${CF_API_EMAIL}
