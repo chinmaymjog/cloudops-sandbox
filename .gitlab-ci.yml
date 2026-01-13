@@ -48,6 +48,14 @@ variables:
   after_script:
     - rm -f "$TEMP_ENV" || true
 
+deploy_traefik:
+  <<: *deploy_template
+  variables:
+    SERVICE_NAME: traefik
+  rules:
+    - changes:
+        - traefik/**
+
 # Service deployments
 deploy_wud:
   <<: *deploy_template
@@ -56,6 +64,14 @@ deploy_wud:
   rules:
     - changes: 
         - wud/**
+
+deploy_portainer:
+  <<: *deploy_template
+  variables:
+    SERVICE_NAME: portainer
+  rules:
+    - changes: 
+        - portainer/**
 
 deploy_runner:
   <<: *deploy_template
@@ -94,22 +110,6 @@ deploy_runner:
     # Cleanup
     - rm -f "$TEMP_ENV"
 
-deploy_traefik:
-  <<: *deploy_template
-  variables:
-    SERVICE_NAME: traefik
-  rules:
-    - changes:
-        - traefik/**
-
-deploy_portainer:
-  <<: *deploy_template
-  variables:
-    SERVICE_NAME: portainer
-  rules:
-    - changes: 
-        - portainer/**
-
 deploy_mysql:
   <<: *deploy_template
   variables:
@@ -118,13 +118,13 @@ deploy_mysql:
     - changes: 
         - mysql/**
 
-deploy_pgsql:
-  <<: *deploy_template
-  variables:
-    SERVICE_NAME: pgsql
-  rules:
-    - changes:
-        - pgsql/**
+# deploy_pgsql:
+#   <<: *deploy_template
+#   variables:
+#     SERVICE_NAME: pgsql
+#   rules:
+#     - changes:
+#         - pgsql/**
 
 deploy_n8n:
   <<: *deploy_template
@@ -134,13 +134,13 @@ deploy_n8n:
     - changes:
         - n8n/**
 
-deploy_keycloak:
-  <<: *deploy_template
-  variables:
-    SERVICE_NAME: keycloak
-  rules:
-    - changes:
-        - keycloak/**
+# deploy_keycloak:
+#   <<: *deploy_template
+#   variables:
+#     SERVICE_NAME: keycloak
+#   rules:
+#     - changes:
+#         - keycloak/**
 
 deploy_grafana:
   <<: *deploy_template
@@ -157,35 +157,4 @@ deploy_prometheus:
   rules:
     - changes:
         - prometheus/**
-
-deploy_homepage:
-  <<: *deploy_template
-  variables:
-    SERVICE_NAME: homepage
-  rules:
-    - changes:
-        - homepage/**
-
-deploy_dnsmasq:
-  <<: *deploy_template
-  variables:
-    SERVICE_NAME: dnsmasq
-  rules:
-    - changes:
-        - dnsmasq/**
-
-deploy_gitlab:
-  <<: *deploy_template
-  variables:
-    SERVICE_NAME: gitlab-ce
-  rules:
-    - changes:
-        - gitlab-ce/**
-
-deploy_docker_webfarm:
-  <<: *deploy_template
-  variables:
-    SERVICE_NAME: docker-webfarm
-  rules:
-    - changes:
-        - docker-webfarm/**
+        
