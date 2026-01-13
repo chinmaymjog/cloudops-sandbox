@@ -15,7 +15,7 @@ services:
       - ./certs:/certs
     networks:
       control-plane:
-        ipv4_address: 192.168.28.101
+
     environment:
       - CF_API_EMAIL=${CF_API_EMAIL}
       - CF_API_KEY=${CF_API_KEY}
