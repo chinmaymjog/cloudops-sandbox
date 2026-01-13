@@ -19,10 +19,11 @@ deploy_runner:
     - changes:
         - gitlab-runner/**
   script:
+    - env envsubst < /tools/gitlab-runner/config/config.sample > gitlab-runner.env
+    - scp gitlab-runner.env -p $SSH_PORT $SSH_USER@$CONTROLLER:/tools/gitlab-runner/config/config.toml
     - ssh -p $SSH_PORT $SSH_USER@$CONTROLLER "
-        cd /tools/traefik &&
+        cd /tools/gitlab-runner &&
         git pull && 
-        envsubst < config.sample > config/config.toml &&
         docker compose pull &&
         docker compose up -d"
   when: manual
@@ -33,10 +34,11 @@ deploy_traefik:
     - changes:
         - traefik/**
   script:
+    - env envsubst < tools/traefik/env.sample > traefik.env
+    - scp traefik.env -p $SSH_PORT $SSH_USER@$CONTROLLER:/tools/traefik/.env
     - ssh -p $SSH_PORT $SSH_USER@$CONTROLLER "
         cd /tools/traefik &&
         git pull && 
-        envsubst < env.sample > .env &&
         docker compose pull &&
         docker compose up -d"
   when: manual
