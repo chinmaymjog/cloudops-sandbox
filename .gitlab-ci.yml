@@ -9,6 +9,9 @@ before_script:
   - ssh-add "$SSH_PRIVATE_KEY"
   - mkdir -p ~/.ssh
   - chmod 700 ~/.ssh
+  - cp "$SSH_KNOWN_HOSTS" ~/.ssh/known_hosts
+  - chmod 644 ~/.ssh/known_hosts
+  - echo "StrictHostKeyChecking no" >> ~/.ssh/config
 
 deploy_runner:
   stage: deploy
