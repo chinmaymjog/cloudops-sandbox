@@ -9,7 +9,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
-      - homelab
+      - control-plane
     labels:
       - traefik.enable=true
       - traefik.http.routers.wud.rule=Host(`wud-${APP_DOMAIN}`)
@@ -18,5 +18,5 @@ services:
       - traefik.http.services.wud.loadbalancer.server.port=3000
 
 networks:
-  homelab:
+  control-plane:
     external: true

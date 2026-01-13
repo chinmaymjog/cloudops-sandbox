@@ -8,8 +8,8 @@ services:
       - ./config:/etc/gitlab-runner
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
-      - homelab
+      - control-plane
 
 networks:
-  homelab:
+  control-plane:
     external: true

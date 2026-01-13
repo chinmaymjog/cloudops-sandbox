@@ -14,7 +14,7 @@ services:
       - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
       - N8N_RUNNERS_ENABLED=true
     networks:
-      - homelab
+      - control-plane
     labels:
       - traefik.enable=true
       - traefik.http.routers.n8n.rule=Host(`n8n-${APP_DOMAIN}`)
@@ -23,6 +23,6 @@ services:
       - traefik.http.services.n8n.loadbalancer.server.port=5678
 
 networks:
-  homelab:
+  control-plane:
     external: true
-    name: homelab
+    name: control-plane

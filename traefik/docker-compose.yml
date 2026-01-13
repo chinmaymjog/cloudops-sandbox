@@ -14,7 +14,7 @@ services:
       - ./log:/var/log/traefik
       - ./certs:/certs
     networks:
-      homelab:
+      control-plane:
         ipv4_address: 192.168.28.101
     environment:
       - CF_API_EMAIL=${CF_API_EMAIL}
@@ -30,5 +30,5 @@ services:
       - traefik.http.middlewares.auth.basicauth.users=${BASIC_AUTH}
 
 networks:
-  homelab:
+  control-plane:
     external: true

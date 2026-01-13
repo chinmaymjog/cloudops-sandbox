@@ -11,7 +11,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./data:/data
     networks:
-      - homelab
+      - control-plane
 
     labels:
       - traefik.enable=true
@@ -21,6 +21,6 @@ services:
       - traefik.http.services.portainer.loadbalancer.server.port=9000
 
 networks:
-  homelab:
+  control-plane:
     external: true
-    name: homelab
+    name: control-plane
