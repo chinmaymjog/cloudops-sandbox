@@ -18,7 +18,7 @@ deploy_runner:
   stage: deploy
   rules:
     - changes:
-        - gitlab-runner/**
+        - gitlab-runner/**/*
   script:
     - envsubst < gitlab-runner/config/config.sample > gitlab-runner.env
     - scp -P $SSH_PORT gitlab-runner.env  $SSH_USER@$CONTROLLER:/tools/gitlab-runner/config/config.toml
