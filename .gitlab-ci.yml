@@ -19,7 +19,7 @@ deploy_runner:
     - changes:
         - gitlab-runner/**
   script:
-    - env envsubst < /tools/gitlab-runner/config/config.sample > gitlab-runner.env
+    - env envsubst < gitlab-runner/config/config.sample > gitlab-runner.env
     - scp gitlab-runner.env -p $SSH_PORT $SSH_USER@$CONTROLLER:/tools/gitlab-runner/config/config.toml
     - ssh -p $SSH_PORT $SSH_USER@$CONTROLLER "
         cd /tools/gitlab-runner &&
@@ -34,7 +34,7 @@ deploy_traefik:
     - changes:
         - traefik/**
   script:
-    - env envsubst < tools/traefik/env.sample > traefik.env
+    - env envsubst < traefik/env.sample > traefik.env
     - scp traefik.env -p $SSH_PORT $SSH_USER@$CONTROLLER:/tools/traefik/.env
     - ssh -p $SSH_PORT $SSH_USER@$CONTROLLER "
         cd /tools/traefik &&
