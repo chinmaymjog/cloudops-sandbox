@@ -1,6 +1,6 @@
 services:
   traefik:
-    image: traefik
+    image: traefik:${TRAEFIK_TAG:-v3.3}
     container_name: traefik
     hostname: traefik
     restart: unless-stopped
@@ -18,13 +18,13 @@ services:
 
     environment:
       - CF_API_EMAIL=${CF_API_EMAIL}
-      - CF_API_KEY=${CF_API_KEY}
+      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
     labels:
       - traefik.enable=true
-      - traefik.http.routers.traefik.rule=Host(`traefik-${APP_DOMAIN}`)
+      - traefik.http.routers.traefik.rule=Host(`traefik.${APP_DOMAIN}`)
       - traefik.http.routers.traefik.entrypoints=websecure
       - traefik.http.routers.traefik.tls.certresolver=myresolver
-      - traefik.http.routers.traefik.tls.domains[0].main=${APP_DOMAIN_FOR_WILDCARD}
+      - traefik.http.routers.traefik.tls.domains[0].main=*.${APP_DOMAIN}
       - traefik.http.routers.traefik.service=api@internal
       - traefik.http.routers.traefik.middlewares=auth
       - traefik.http.middlewares.auth.basicauth.users=${BASIC_AUTH}

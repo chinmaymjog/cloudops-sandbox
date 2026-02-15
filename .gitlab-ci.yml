@@ -2,7 +2,7 @@ stages:
   - deploy
 
 variables:
-  DEPLOY_DIR: /tools
+  DEPLOY_DIR: /services
 
 .deploy_template: &deploy_template
   stage: deploy
@@ -54,7 +54,7 @@ deploy_traefik:
     SERVICE_NAME: traefik
   rules:
     - changes:
-        - traefik/**
+        - services/traefik/**
 
 # Service deployments
 deploy_wud:
@@ -63,7 +63,7 @@ deploy_wud:
     SERVICE_NAME: wud
   rules:
     - changes: 
-        - wud/**
+        - services/wud/**
 
 deploy_portainer:
   <<: *deploy_template
@@ -71,44 +71,7 @@ deploy_portainer:
     SERVICE_NAME: portainer
   rules:
     - changes: 
-        - portainer/**
-
-deploy_runner:
-  <<: *deploy_template
-  variables:
-    SERVICE_NAME: gitlab-runner
-  rules:
-    - changes:
-        - gitlab-runner/**/*
-  script:
-    - SERVICE=$SERVICE_NAME
-    - ENV_FILE="${SERVICE}/config/config.sample"
-    - TEMP_ENV="${SERVICE}.env"
-    - REMOTE_PATH="${DEPLOY_DIR}/${SERVICE}/config/config.toml"
-    
-    # Validate environment file exists
-    - |
-      if [ ! -f "$ENV_FILE" ]; then
-        echo "ERROR: $ENV_FILE not found"
-        exit 1
-      fi
-    
-    # Generate environment file from template
-    - envsubst < "$ENV_FILE" > "$TEMP_ENV"
-    
-    # Deploy to remote
-    - scp -P "$SSH_PORT" "$TEMP_ENV" "$SSH_USER@$CONTROLLER:$REMOTE_PATH"
-    - |
-      ssh -p "$SSH_PORT" "$SSH_USER@$CONTROLLER" \
-        "cd ${DEPLOY_DIR} && \
-         git pull && \
-         cd ${DEPLOY_DIR}/${SERVICE} && \
-         docker compose pull && \
-         docker compose up -d && \
-         echo 'Deployment completed successfully'"
-    
-    # Cleanup
-    - rm -f "$TEMP_ENV"
+        - services/portainer/**
 
 deploy_mysql:
   <<: *deploy_template
@@ -116,15 +79,15 @@ deploy_mysql:
     SERVICE_NAME: mysql
   rules:
     - changes: 
-        - mysql/**
+        - services/mysql/**
 
-# deploy_pgsql:
-#   <<: *deploy_template
-#   variables:
-#     SERVICE_NAME: pgsql
-#   rules:
-#     - changes:
-#         - pgsql/**
+deploy_pgsql:
+  <<: *deploy_template
+  variables:
+    SERVICE_NAME: pgsql
+  rules:
+    - changes:
+        - pgsql/**
 
 deploy_n8n:
   <<: *deploy_template
@@ -132,15 +95,7 @@ deploy_n8n:
     SERVICE_NAME: n8n
   rules:
     - changes:
-        - n8n/**
-
-# deploy_keycloak:
-#   <<: *deploy_template
-#   variables:
-#     SERVICE_NAME: keycloak
-#   rules:
-#     - changes:
-#         - keycloak/**
+        - services/n8n/**
 
 deploy_grafana:
   <<: *deploy_template
@@ -148,7 +103,7 @@ deploy_grafana:
     SERVICE_NAME: grafana
   rules:
     - changes:
-        - grafana/**
+        - services/grafana/**
 
 deploy_prometheus:
   <<: *deploy_template
@@ -156,5 +111,5 @@ deploy_prometheus:
     SERVICE_NAME: prometheus
   rules:
     - changes:
-        - prometheus/**
+        - services/prometheus/**
         

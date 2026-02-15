@@ -1,6 +1,6 @@
 services:
   mysql:
-    image: mysql:latest
+    image: mysql:${MYSQL_TAG:-9.2.0}
     user: mysql
     container_name: mysql
     hostname: mysql
@@ -13,6 +13,9 @@ services:
       - control-plane
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
 
   # phpmyadmin:
   #   image: phpmyadmin/phpmyadmin:5.2.2
