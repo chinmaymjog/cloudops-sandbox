@@ -14,43 +14,43 @@ variables:
   before_script:
     - apt-get update && apt-get install -y gettext-base openssh-client
     - eval $(ssh-agent -s)
-    - chmod 400 "$SSH_PRIVATE_KEY"
-    - ssh-add "$SSH_PRIVATE_KEY"
+    - chmod 400 "${SSH_PRIVATE_KEY}"
+    - ssh-add "${SSH_PRIVATE_KEY}"
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
-    - cp "$SSH_KNOWN_HOSTS" ~/.ssh/known_hosts
+    - cp "${SSH_KNOWN_HOSTS}" ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
     - echo "StrictHostKeyChecking no" >> ~/.ssh/config
   script:
-    - SERVICE=$SERVICE_NAME
+    - SERVICE="${DEPLOY_DIR}/${SERVICE_NAME}"
     - ENV_FILE="${SERVICE}/env.sample"
-    - TEMP_ENV="${SERVICE}.env"
+    - TEMP_ENV="${SERVICE_NAME}.env"
     
     # Validate environment file exists
     - |
-      if [ ! -f "$ENV_FILE" ]; then
-        echo "ERROR: $ENV_FILE not found"
+      if [ ! -f "${ENV_FILE}" ]; then
+        echo "ERROR: ${ENV_FILE} not found"
         exit 1
       fi
     
     # Generate environment file from template
-    - envsubst < "$ENV_FILE" > "$TEMP_ENV"
+    - envsubst < "${ENV_FILE}" > "${TEMP_ENV}"
     
     # Deploy to remote
-    - scp -P "$SSH_PORT" "$TEMP_ENV" "$SSH_USER@$CONTROLLER:${DEPLOY_DIR}/${SERVICE}/.env"
+    - scp -P "${SSH_PORT}" "${TEMP_ENV}" "${SSH_USER}@${CONTROLLER}:${SERVICE}/.env"
     - |
-      ssh -p "$SSH_PORT" "$SSH_USER@$CONTROLLER" \
+      ssh -p "${SSH_PORT}" "${SSH_USER}@${CONTROLLER}" \
         "cd ${DEPLOY_DIR} && \
          git pull && \
-         cd ${DEPLOY_DIR}/${SERVICE} && \
+         cd ${SERVICE} && \
          docker compose pull && \
          docker compose up -d && \
          echo 'Deployment completed successfully'"
     
     # Cleanup
-    - rm -f "$TEMP_ENV"
+    - rm -f "${TEMP_ENV}"
   after_script:
-    - rm -f "$TEMP_ENV" || true
+    - rm -f "${TEMP_ENV}" || true
 
 deploy_traefik:
   <<: *deploy_template
