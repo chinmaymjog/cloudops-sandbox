@@ -186,6 +186,7 @@ git remote add origin git@gitlab.com:platforms4105702/tooling/platform-tooling-s
 git fetch origin
 git checkout -b develop
 git reset --mixed origin/develop
+git branch --set-upstream-to=origin/develop develop
 ```
 
 ### CI/CD Variables
