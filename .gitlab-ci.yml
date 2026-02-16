@@ -42,7 +42,7 @@ variables:
     - envsubst < "${ENV_FILE}" > "${TEMP_ENV}"
     
     # Deploy to remote
-    - scp -P "${SSH_PORT}" "${TEMP_ENV}" "${SSH_USER}@${CONTROLLER}:${SERVICE}/.env"
+    - scp -P "${SSH_PORT}" "${TEMP_ENV}" "${SSH_USER}@${CONTROLLER}:${DEPLOY_DIR}/${SERVICE}/.env"
     - |
       ssh -p "${SSH_PORT}" "${SSH_USER}@${CONTROLLER}" \
         "cd ${DEPLOY_DIR} && \
