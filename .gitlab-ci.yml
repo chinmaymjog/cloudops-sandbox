@@ -31,7 +31,7 @@ variables:
   script:
     - echo "--- Deploying Service:${SERVICE_NAME} ---"
     - SERVICE_ROOT="services/${SERVICE_NAME}"
-    - REMOTE_PATH="${DEPLOY_DIR}/${SERVICE_NAME}"
+    - REMOTE_PATH="${DEPLOY_DIR}/services/${SERVICE_NAME}"
     - ENV_FILE="${SERVICE_ROOT}/env.sample"
     - LOCAL_DOTENV="${SERVICE_ROOT}/.env"
     
