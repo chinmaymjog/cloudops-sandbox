@@ -173,7 +173,21 @@ This project includes a `.gitlab-ci.yml` configuration used by the maintainer to
 The pipeline uses `envsubst` to inject secrets from GitLab Variables into `env.sample` templates, generating temporary `.env` files for deployment to a remote server via SSH.
  
 This is **not required** for local usage but serves as a reference for how to deploy this stack using CI/CD.
- 
+
+### 🛡️ Remote Server Setup
+
+If you are using the maintainer's CI/CD pipeline, your remote server MUST be initialized as a Git repository in the target deployment directory (e.g., `/services`) for the `git pull` step to work.
+
+**Initial Setup on Remote Server:**
+```bash
+mkdir -p /services && cd /services
+git init
+git remote add origin git@gitlab.com:platforms4105702/tooling/platform-tooling-stack.git
+git fetch origin
+git checkout -b develop
+git reset --mixed origin/develop
+```
+
 ### CI/CD Variables
  
 Configure these in GitLab -> Settings -> CI/CD -> Variables:
