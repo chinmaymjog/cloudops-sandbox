@@ -27,9 +27,9 @@ variables:
     - chmod 644 ~/.ssh/known_hosts
     - echo "StrictHostKeyChecking no" >> ~/.ssh/config
   script:
-    - SERVICE="${DEPLOY_DIR}/${SERVICE_NAME}"
-    - ENV_FILE="${SERVICE}/env.sample"
-    - TEMP_ENV="${SERVICE_NAME}.env"
+    - SERVICE="${SERVICE_NAME}"
+    - ENV_FILE="services/${SERVICE_NAME}/env.sample"
+    - TEMP_ENV="services/${SERVICE_NAME}/.env"
     
     # Validate environment file exists
     - |
