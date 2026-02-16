@@ -1,5 +1,9 @@
 stages:
+  - test
   - deploy
+
+# This pipeline is used for internal testing and verification of the lab environment
+# by the maintainer. Local users can ignore this or use it as a reference.
 
 variables:
   DEPLOY_DIR: /services
