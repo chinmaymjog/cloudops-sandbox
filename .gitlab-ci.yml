@@ -2,9 +2,7 @@ stages:
   - test
   - deploy
 
-# This pipeline is used for internal testing and verification of the lab environment
-# by the maintainer. Local users can ignore this or use it as a reference.
-
+# Global Workflow Rules
 workflow:
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
@@ -12,128 +10,125 @@ workflow:
     - when: always
 
 variables:
-  DEPLOY_DIR: /services
+  DEPLOY_DIR: "/services"
 
-.deploy_template: &deploy_template
-  stage: deploy
+# Hidden job for SSH & Tooling Setup
+.setup_ssh:
   before_script:
+    - echo "--- Preparing Environment ---"
     - apt-get update && apt-get install -y gettext-base openssh-client
     - eval $(ssh-agent -s)
     - chmod 400 "${SSH_PRIVATE_KEY}"
     - ssh-add "${SSH_PRIVATE_KEY}"
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    - cp "${SSH_KNOWN_HOSTS}" ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - cp "${SSH_KNOWN_HOSTS}" ~/.ssh/known_hosts && chmod 644 ~/.ssh/known_hosts
     - echo "StrictHostKeyChecking no" >> ~/.ssh/config
+
+# Hidden job for Deployment Logic
+.deploy_template:
+  extends: .setup_ssh
+  stage: deploy
   script:
-    - SERVICE="${SERVICE_NAME}"
-    - ENV_FILE="services/${SERVICE_NAME}/env.sample"
-    - TEMP_ENV="services/${SERVICE_NAME}/.env"
+    - echo "--- Deploying Service:${SERVICE_NAME} ---"
+    - SERVICE_ROOT="services/${SERVICE_NAME}"
+    - REMOTE_PATH="${DEPLOY_DIR}/${SERVICE_NAME}"
+    - ENV_FILE="${SERVICE_ROOT}/env.sample"
+    - LOCAL_DOTENV="${SERVICE_ROOT}/.env"
     
-    # Validate environment file exists
     - |
       if [ ! -f "${ENV_FILE}" ]; then
         echo "ERROR: ${ENV_FILE} not found"
         exit 1
       fi
     
-    # Generate environment file from template
-    - envsubst < "${ENV_FILE}" > "${TEMP_ENV}"
+    - echo "Generating .env from template..."
+    - envsubst < "${ENV_FILE}" > "${LOCAL_DOTENV}"
     
-    # Deploy to remote
-    - scp -P "${SSH_PORT}" "${TEMP_ENV}" "${SSH_USER}@${CONTROLLER}:${DEPLOY_DIR}/${SERVICE}/.env"
+    - echo "Uploading configuration..."
+    - scp -P "${SSH_PORT}" "${LOCAL_DOTENV}" "${SSH_USER}@${CONTROLLER}:${REMOTE_PATH}/.env"
+    
+    - echo "Executing remote deployment..."
     - |
       ssh -p "${SSH_PORT}" "${SSH_USER}@${CONTROLLER}" \
         "cd ${DEPLOY_DIR} && \
          git pull && \
-         cd ${SERVICE} && \
+         cd ${REMOTE_PATH} && \
          docker compose pull && \
          docker compose up -d && \
-         echo 'Deployment completed successfully'"
-    
-    # Cleanup
-    - rm -f "${TEMP_ENV}"
+         echo 'Deployment of ${SERVICE_NAME} completed successfully'"
   after_script:
-    - rm -f "${TEMP_ENV}" || true
+    - rm -f "services/${SERVICE_NAME}/.env" || true
+
+# --- Service Deployments ---
 
 deploy_traefik:
-  <<: *deploy_template
+  extends: .deploy_template
   variables:
-    SERVICE_NAME: traefik
+    SERVICE_NAME: "traefik"
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
       changes:
         - services/traefik/**
-      when: on_success
 
-# Service deployments
 deploy_wud:
-  <<: *deploy_template
+  extends: .deploy_template
   variables:
-    SERVICE_NAME: wud
+    SERVICE_NAME: "wud"
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
-      changes: 
+      changes:
         - services/wud/**
-      when: on_success
 
 deploy_portainer:
-  <<: *deploy_template
+  extends: .deploy_template
   variables:
-    SERVICE_NAME: portainer
+    SERVICE_NAME: "portainer"
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
-      changes: 
+      changes:
         - services/portainer/**
-      when: on_success
 
 deploy_mysql:
-  <<: *deploy_template
+  extends: .deploy_template
   variables:
-    SERVICE_NAME: mysql
+    SERVICE_NAME: "mysql"
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
-      changes: 
+      changes:
         - services/mysql/**
-      when: on_success
 
 deploy_pgsql:
-  <<: *deploy_template
+  extends: .deploy_template
   variables:
-    SERVICE_NAME: pgsql
+    SERVICE_NAME: "pgsql"
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
       changes:
         - services/pgsql/**
-      when: on_success
 
 deploy_n8n:
-  <<: *deploy_template
+  extends: .deploy_template
   variables:
-    SERVICE_NAME: n8n
+    SERVICE_NAME: "n8n"
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
       changes:
         - services/n8n/**
-      when: on_success
 
 deploy_grafana:
-  <<: *deploy_template
+  extends: .deploy_template
   variables:
-    SERVICE_NAME: grafana
+    SERVICE_NAME: "grafana"
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
       changes:
         - services/grafana/**
-      when: on_success
 
 deploy_prometheus:
-  <<: *deploy_template
+  extends: .deploy_template
   variables:
-    SERVICE_NAME: prometheus
+    SERVICE_NAME: "prometheus"
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
       changes:
         - services/prometheus/**
-      when: on_success
