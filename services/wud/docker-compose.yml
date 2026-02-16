@@ -1,6 +1,6 @@
 services:
   whatsupdocker:
-    image: getwud/wud:${WUD_TAG:-2.x}
+    image: getwud/wud:${WUD_TAG:-latest}
     container_name: wud
     hostname: wud
     restart: unless-stopped
