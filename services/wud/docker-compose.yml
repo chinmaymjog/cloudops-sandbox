@@ -1,6 +1,6 @@
 services:
   whatsupdocker:
-    image: getwud/wud
+    image: getwud/wud:${WUD_TAG:-2.x}
     container_name: wud
     hostname: wud
     restart: unless-stopped
@@ -12,7 +12,7 @@ services:
       - control-plane
     labels:
       - traefik.enable=true
-      - traefik.http.routers.wud.rule=Host(`wud-${APP_DOMAIN}`)
+      - traefik.http.routers.wud.rule=Host(`wud.${APP_DOMAIN}`)
       - traefik.http.routers.wud.entrypoints=websecure
       - traefik.http.routers.wud.tls.certresolver=myresolver
       - traefik.http.services.wud.loadbalancer.server.port=3000

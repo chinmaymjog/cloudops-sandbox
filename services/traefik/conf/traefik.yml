@@ -155,9 +155,9 @@ providers:
     # Default: true
     #
     # exposedByDefault: false
-  file:
-    filename: /etc/traefik/traefik-dynamic.yaml
-    watch: true
+  # file:
+  #   filename: /etc/traefik/traefik-dynamic.yaml
+  #   watch: true
 
 certificatesResolvers:
   myresolver:
