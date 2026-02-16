@@ -3,7 +3,8 @@
 .env
 
 # grafana
-**/grafana
+**/services/grafana/data
+**/services/grafana/.env
 
 # mysql
 **/mysql/data
@@ -18,7 +19,8 @@
 **/portainer/data
 
 # prometheus
-**/prometheus
+**/services/prometheus/data
+**/services/prometheus/.env
 
 #traefik
 **/traefik/certs

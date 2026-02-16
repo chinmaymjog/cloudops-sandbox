@@ -1,0 +1,23 @@
+services:
+  grafana:
+    image: grafana/grafana-oss:${GRAFANA_TAG:-11.5.0}
+    container_name: grafana
+    hostname: grafana
+    restart: unless-stopped
+    user: "0"
+    # ports:
+    #   - "3000:3000"
+    volumes:
+      - ./data:/var/lib/grafana
+    networks:
+      - control-plane
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.grafana.rule=Host(`grafana.${APP_DOMAIN}`)
+      - traefik.http.routers.grafana.entrypoints=websecure
+      - traefik.http.routers.grafana.tls.certresolver=myresolver
+      - traefik.http.services.grafana.loadbalancer.server.port=3000
+
+networks:
+  control-plane:
+    external: true
