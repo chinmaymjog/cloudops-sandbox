@@ -5,12 +5,17 @@ stages:
 # This pipeline is used for internal testing and verification of the lab environment
 # by the maintainer. Local users can ignore this or use it as a reference.
 
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: never
+    - when: always
+
 variables:
   DEPLOY_DIR: /services
 
 .deploy_template: &deploy_template
   stage: deploy
-  when: manual
   before_script:
     - apt-get update && apt-get install -y gettext-base openssh-client
     - eval $(ssh-agent -s)
@@ -57,8 +62,10 @@ deploy_traefik:
   variables:
     SERVICE_NAME: traefik
   rules:
-    - changes:
+    - if: $CI_COMMIT_BRANCH == "develop"
+      changes:
         - services/traefik/**
+      when: on_success
 
 # Service deployments
 deploy_wud:
@@ -66,54 +73,67 @@ deploy_wud:
   variables:
     SERVICE_NAME: wud
   rules:
-    - changes: 
+    - if: $CI_COMMIT_BRANCH == "develop"
+      changes: 
         - services/wud/**
+      when: on_success
 
 deploy_portainer:
   <<: *deploy_template
   variables:
     SERVICE_NAME: portainer
   rules:
-    - changes: 
+    - if: $CI_COMMIT_BRANCH == "develop"
+      changes: 
         - services/portainer/**
+      when: on_success
 
 deploy_mysql:
   <<: *deploy_template
   variables:
     SERVICE_NAME: mysql
   rules:
-    - changes: 
+    - if: $CI_COMMIT_BRANCH == "develop"
+      changes: 
         - services/mysql/**
+      when: on_success
 
 deploy_pgsql:
   <<: *deploy_template
   variables:
     SERVICE_NAME: pgsql
   rules:
-    - changes:
-        - pgsql/**
+    - if: $CI_COMMIT_BRANCH == "develop"
+      changes:
+        - services/pgsql/**
+      when: on_success
 
 deploy_n8n:
   <<: *deploy_template
   variables:
     SERVICE_NAME: n8n
   rules:
-    - changes:
+    - if: $CI_COMMIT_BRANCH == "develop"
+      changes:
         - services/n8n/**
+      when: on_success
 
 deploy_grafana:
   <<: *deploy_template
   variables:
     SERVICE_NAME: grafana
   rules:
-    - changes:
+    - if: $CI_COMMIT_BRANCH == "develop"
+      changes:
         - services/grafana/**
+      when: on_success
 
 deploy_prometheus:
   <<: *deploy_template
   variables:
     SERVICE_NAME: prometheus
   rules:
-    - changes:
+    - if: $CI_COMMIT_BRANCH == "develop"
+      changes:
         - services/prometheus/**
-        
+      when: on_success
