@@ -128,24 +128,24 @@ git clone git@gitlab.com:your-username/devops-lab.git
 cd devops-lab
 ```
  
-### 2. Initialize Environment
- 
-Run the initialization script to generate your local environment files from templates.
- 
+### 2. Configure Global Secrets
+
+Create a global `.env` file at the root of the repository to store your global configuration, domain, and specific image tags. This acts as the source of truth for all services.
+
+```bash
+cp services/traefik/.env.template .env # or create a fresh one
+nano .env # Configure domains, database passwords, and API keys
+```
+
+### 3. Initialize Environment
+
+Run the initialization script to generate your local project environment files from their `.env.template` definitions using your global `.env` configuration.
+
 ```bash
 ./init.sh
 ```
- 
-This will create `.env` files in each service directory (e.g., `services/traefik/.env`).
- 
-### 3. Configure Secrets
- 
-Review and edit the generated `.env` files to set your own passwords and domains.
- 
-```bash
-nano services/traefik/.env
-# Set CF_API_EMAIL, CF_DNS_API_TOKEN, BASIC_AUTH
-```
+
+This script uses `envsubst` to automatically construct the precise `.env` files in each service directory (e.g., `services/traefik/.env`, `services/mysql/.env`). You should re-run `./init.sh` any time you modify the root `.env`.
  
 ### 4. Start Services
  
@@ -170,7 +170,7 @@ This project includes a `.gitlab-ci.yml` configuration used by the maintainer to
  
 ### GitLab CI/CD Pipeline
  
-The pipeline uses `envsubst` to inject secrets from GitLab Variables into `env.sample` templates, generating temporary `.env` files for deployment to a remote server via SSH.
+The pipeline uses `envsubst` to inject secrets from GitLab Variables into `.env.template` templates, generating temporary `.env` files for deployment to a remote server via SSH.
  
 This is **not required** for local usage but serves as a reference for how to deploy this stack using CI/CD.
 
