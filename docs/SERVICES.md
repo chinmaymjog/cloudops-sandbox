@@ -19,7 +19,7 @@ Detailed documentation for each service in the DevOps Playground.
 
 - Location: `traefik/`
 - Files: `docker-compose.yml`, `conf/traefik.yml`, `certs/acme.json`
-- Environment: `traefik/.env.example`
+- Environment: `traefik/.env.template`
 
 **Access:**
 
@@ -57,7 +57,7 @@ APP_DOMAIN          # Application domain (e.g., lab.local)
 
 - Location: `portainer/`
 - Files: `docker-compose.yml`, `data/portainer.db`
-- Environment: `portainer/.env.example`
+- Environment: `portainer/.env.template`
 
 **Access:**
 
@@ -182,7 +182,7 @@ scrape_configs:
 - Location: `mysql/`
 - Files: `docker-compose.yml`
 - Data: Stored in `mysql/data/`
-- Environment: `mysql/.env.example`
+- Environment: `mysql/.env.template`
 
 **Access:**
 
@@ -214,7 +214,7 @@ mysql://root:password@mysql:3306/database
 - Location: `pgsql/`
 - Files: `docker-compose.yml`
 - Data: Stored in `pgsql/data/`
-- Environment: `pgsql/.env.example`
+- Environment: `pgsql/.env.template`
 
 **Access:**
 
@@ -257,7 +257,7 @@ postgresql://postgres:password@pgsql:5432/database
 - Location: `n8n/`
 - Files: `docker-compose.yml`
 - Data: Stored in `n8n/data/` (SQLite by default)
-- Environment: `n8n/.env.example`
+- Environment: `n8n/.env.template`
 
 **Access:**
 
@@ -294,7 +294,7 @@ Webhook Trigger → Parse JSON → Send Email → Log Result
 
 - Location: `wud/`
 - Files: `docker-compose.yml`
-- Environment: `wud/.env.example`
+- Environment: `wud/.env.template`
 
 **Access:**
 

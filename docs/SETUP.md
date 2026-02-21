@@ -76,44 +76,37 @@ ls -la
 # Should see: traefik/, portainer/, gitlab-ce/, etc.
 ```
 
-## Step 2: Configure Environment Variables
+## Step 2: Configure Global Secrets
  
-We use a standardized environment model. You will copy the *example* file to an *active* `.env` file.
+We use a centralized environment model. A single root `.env` file feeds all downstream configurations.
  
-### 1. Initialize `.env` files
+### 1. Create the Global `.env`
  
 ```bash
-# Copy templates to active config
-for dir in services/*/; do
-  if [ -f "$dir/.env.example" ]; then
-    cp "$dir/.env.example" "$dir/.env"
-  fi
-done
+# Copy the global template to the root active config
+cp services/traefik/.env.template .env
 ```
  
-### 2. Configure & Cleanup
+### 2. Configure Settings
  
-Edit each `.env` file to set your secrets.
-**Important:** For production consistency, we recommend stripping comments and keeping the exact order of keys.
+Edit the root `.env` file to set your global domains and required secrets.
  
 ```bash
-# Example: Editing Traefik
-nano services/traefik/.env
+nano .env
 ```
  
 **Required Changes:**
-- `TRAEFIK_TAG` (Default: v3.3)
-- `CF_API_EMAIL` & `CF_DNS_API_TOKEN` (for Let's Encrypt)
-- `BASIC_AUTH` (generate with `htpasswd`)
- 
-**Example Clean `.env` (Traefik):**
-```env
-TRAEFIK_TAG=v3.3
-APP_DOMAIN=lab.local
-CF_API_EMAIL=user@example.com
-CF_DNS_API_TOKEN=secret-token
-BASIC_AUTH=admin:$$2y$$...
+- `APP_DOMAIN` (Default: lab.local)
+- `CF_API_EMAIL` & `CF_DNS_API_TOKEN` (for Let's Encrypt Traefik DNS resolution)
+- Database passwords and admin users.
+
+### 3. Initialize Service Environments
+
+Run the included `init.sh` to construct all project-specific `.env` layouts.
+```bash
+./init.sh
 ```
+This parses every `services/*/.env.template` against your root `.env` variables and securely injects them using `envsubst`.
 
 ## Step 3: Configure DNS
 
