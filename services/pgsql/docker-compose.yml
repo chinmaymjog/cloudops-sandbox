@@ -1,6 +1,6 @@
 services:
   postgresql:
-    image: postgres:${POSTGRES_TAG:-17.6}
+    image: postgres:${POSTGRES_TAG}
     user: postgres
     container_name: postgresql
     hostname: postgresql

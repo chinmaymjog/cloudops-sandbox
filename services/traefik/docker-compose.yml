@@ -1,6 +1,6 @@
 services:
   traefik:
-    image: traefik:${TRAEFIK_TAG:-v3.3}
+    image: traefik:${TRAEFIK_TAG}
     container_name: traefik
     hostname: traefik
     restart: unless-stopped

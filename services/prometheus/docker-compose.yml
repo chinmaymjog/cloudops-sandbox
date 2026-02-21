@@ -1,6 +1,6 @@
 services:
   prometheus:
-    image: prom/prometheus:${PROMETHEUS_TAG:-v3.1.0}
+    image: prom/prometheus:${PROMETHEUS_TAG}
     container_name: prometheus
     hostname: prometheus
     restart: unless-stopped

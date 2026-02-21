@@ -1,6 +1,6 @@
 services:
   portainer:
-    image: portainer/portainer-ce:${PORTAINER_TAG:-2.33.6}
+    image: portainer/portainer-ce:${PORTAINER_TAG}
     container_name: portainer
     hostname: portainer
     restart: unless-stopped

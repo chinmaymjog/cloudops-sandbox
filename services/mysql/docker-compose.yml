@@ -1,6 +1,6 @@
 services:
   mysql:
-    image: mysql:${MYSQL_TAG:-9.2.0}
+    image: mysql:${MYSQL_TAG}
     user: mysql
     container_name: mysql
     hostname: mysql
