@@ -107,7 +107,7 @@ Subnet: 172.20.0.0/16 # Example CIDR
 Services Connected:
   - traefik (172.20.0.2)
   - portainer (172.20.0.3)
-  - gitlab (172.20.0.4)
+  - n8n (172.20.0.4)
   - ... (dynamically assigned)
 ```
 
@@ -165,7 +165,6 @@ Disk: 100+ GB
 
 - Services accessible on localhost only
 - Basic authentication on Traefik dashboard (optional)
-- Keycloak for IAM integration
 
 ### Best Practices
 
@@ -182,11 +181,11 @@ Disk: 100+ GB
 - Direct access via `service.local` domains
 - Perfect for learning and experimentation
 
-### 2. **Remote Deployment** (via GitLab Runner)
+### 2. **Remote Deployment** (via CI/CD Pipeline)
 
-- Push to GitLab triggers CI/CD pipeline
-- Runner deploys to remote server via SSH
-- Automated via `.gitlab-ci.yml`
+- Push to Git triggers CI/CD pipeline
+- Pipeline deploys to remote server
+- Automated via CI workflows
 
 ### 3. **Kubernetes Clusters** (with K3d)
 

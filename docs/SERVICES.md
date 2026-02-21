@@ -313,26 +313,19 @@ Webhook Trigger → Parse JSON → Send Email → Log Result
 ### Typical DevOps Workflow
 
 ```
-1. Developer commits code
+1. Webhook triggers n8n workflow
    ↓
-2. GitLab detects push (webhook)
+2. n8n orchestrates automated tasks
    ↓
-3. CI/CD pipeline triggered
+3. Services updated
    ↓
-4. GitLab Runner executes jobs:
-   - Build Docker image
-   - Run tests
-   - Deploy containers
+4. Prometheus scrapes metrics
    ↓
-5. Services updated
+5. Grafana displays dashboards
    ↓
-6. Prometheus scrapes metrics
+6. wud detects new image versions
    ↓
-7. Grafana displays dashboards
-   ↓
-8. wud detects new image versions
-   ↓
-9. Notifications via n8n workflows
+7. Notifications via n8n workflows
 ```
 
 ---

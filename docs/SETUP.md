@@ -73,7 +73,7 @@ cd DevOps-Lab
 
 # Verify structure
 ls -la
-# Should see: traefik/, portainer/, gitlab-ce/, etc.
+# Should see: traefik/, portainer/, n8n/, etc.
 ```
 
 ## Step 2: Configure Global Secrets
@@ -120,13 +120,12 @@ sudo nano /etc/hosts
 127.0.0.1 lab.local
 127.0.0.1 traefik.lab.local
 127.0.0.1 portainer.lab.local
-127.0.0.1 gitlab.lab.local
 127.0.0.1 grafana.lab.local
 127.0.0.1 prometheus.lab.local
 127.0.0.1 mysql.lab.local
 127.0.0.1 pgsql.lab.local
-127.0.0.1 keycloak.lab.local
 127.0.0.1 n8n.lab.local
+127.0.0.1 wud.lab.local
 ```
 
 ### Option B: Using Registered Domain (Advanced)
@@ -182,8 +181,11 @@ cd ..
 # 2. Start other services
 cd portainer && docker compose up -d && cd ..
 cd mysql && docker compose up -d && cd ..
+cd pgsql && docker compose up -d && cd ..
 cd prometheus && docker compose up -d && cd ..
 cd grafana && docker compose up -d && cd ..
+cd n8n && docker compose up -d && cd ..
+cd wud && docker compose up -d && cd ..
 
 # Start remaining services as needed
 ```
@@ -238,6 +240,7 @@ Open in browser:
 | Prometheus | http://prometheus.lab.local:9090 | N/A                          |
 | Grafana    | http://grafana.lab.local:3000    | admin / admin                |
 | n8n        | http://n8n.lab.local:5678        | (set on first login)         |
+| wud        | http://wud.lab.local:3000        | N/A                          |
 
 ## Step 7: Initial Configuration
 
@@ -264,9 +267,10 @@ cat > health-check.sh << 'EOF'
 services=(
   "http://traefik.lab.local"
   "http://portainer.lab.local:9000"
-  "http://gitlab.lab.local"
+  "http://n8n.lab.local:5678"
   "http://prometheus.lab.local:9090"
   "http://grafana.lab.local:3000"
+  "http://wud.lab.local:3000"
 )
 
 for service in "${services[@]}"; do
@@ -339,7 +343,7 @@ docker stats
 
 ```bash
 # Stop all services
-for dir in traefik portainer gitlab-ce mysql pgsql prometheus grafana; do
+for dir in traefik portainer n8n mysql pgsql prometheus grafana wud; do
   cd $dir
   docker compose down
   cd ..

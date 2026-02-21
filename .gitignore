@@ -3,6 +3,7 @@
 
 # Ignore all generated service-level .env files
 services/*/.env
+.env-copy
 
 # grafana
 **/services/grafana/data
