@@ -1,10 +1,11 @@
 .vscode
 .DS_Store
-.env
+
+# Ignore all generated service-level .env files
+services/*/.env
 
 # grafana
 **/services/grafana/data
-**/services/grafana/.env
 
 # mysql
 **/mysql/data
@@ -20,12 +21,10 @@
 
 # prometheus
 **/services/prometheus/data
-**/services/prometheus/.env
 
 #traefik
 **/traefik/certs
 **/traefik/log
 
 digitalocean
-init.sh
 Notes
