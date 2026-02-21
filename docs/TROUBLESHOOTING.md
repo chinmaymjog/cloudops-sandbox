@@ -47,14 +47,14 @@ Solutions for common issues and problems in the DevOps Lab.
 2. **Check Traefik is running:**
 
    ```bash
-   docker compose -f traefik/docker-compose.yml ps
+   docker compose -f services/traefik/docker-compose.yml ps
    # Should show: Up X minutes
    ```
 
 3. **Check container logs:**
 
    ```bash
-   docker compose -f traefik/docker-compose.yml logs -f
+   docker compose -f services/traefik/docker-compose.yml logs -f
    ```
 
 4. **Verify network connectivity:**
@@ -94,7 +94,7 @@ Solutions for common issues and problems in the DevOps Lab.
 3. **Verify dependencies are running:**
 
    ```bash
-   docker ps | grep -E "mysql|pgsql|redis"
+   docker ps | grep -E "mysql|pgsql"
    # Should show required services
    ```
 
@@ -490,7 +490,7 @@ echo -e "\n=== DNS ==="
 nslookup traefik.lab.local
 
 echo -e "\n=== Services ==="
-for service in traefik portainer gitlab-ce mysql prometheus grafana; do
+for service in traefik portainer n8n mysql pgsql prometheus grafana wud; do
   status=$(docker compose -f $service/docker-compose.yml ps -q | wc -l)
   echo "$service: $status containers"
 done

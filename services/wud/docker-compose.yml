@@ -8,6 +8,11 @@ services:
     #   - 3000:3000
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WUD_REGISTRY_CUSTOM_N8N_URL=https://docker.n8n.io
+      - WUD_TRIGGER_SLACK_SUPPORT_TOKEN=${WUD_TRIGGER_SLACK_SUPPORT_TOKEN}
+      - WUD_TRIGGER_SLACK_SUPPORT_CHANNEL=${WUD_TRIGGER_SLACK_SUPPORT_CHANNEL}
+      - WUD_TRIGGER_SLACK_SUPPORT_THRESHOLD=${WUD_TRIGGER_SLACK_SUPPORT_THRESHOLD}
     networks:
       - control-plane
     labels:
