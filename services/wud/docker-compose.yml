@@ -16,6 +16,7 @@ services:
       - traefik.http.routers.wud.entrypoints=websecure
       - traefik.http.routers.wud.tls.certresolver=myresolver
       - traefik.http.services.wud.loadbalancer.server.port=3000
+      - traefik.http.routers.wud.middlewares=auth
 
 networks:
   control-plane:
