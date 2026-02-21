@@ -1,6 +1,6 @@
 services:
   grafana:
-    image: grafana/grafana-oss:${GRAFANA_TAG:-11.5.0}
+    image: grafana/grafana-oss:${GRAFANA_TAG}
     container_name: grafana
     hostname: grafana
     restart: unless-stopped
