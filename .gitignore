@@ -29,3 +29,10 @@ services/*/.env
 
 digitalocean
 Notes
+
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.egg-info/
+.orchestrator
