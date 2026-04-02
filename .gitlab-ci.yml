@@ -34,16 +34,16 @@ variables:
     - REMOTE_PATH="${DEPLOY_DIR}/services/${SERVICE_NAME}"
     - ENV_FILE="${SERVICE_ROOT}/.env.template"
     - LOCAL_DOTENV="${SERVICE_ROOT}/.env"
-    
+
     - |
       if [ ! -f "${ENV_FILE}" ]; then
         echo "ERROR: ${ENV_FILE} not found"
         exit 1
       fi
-    
+
     - echo "Generating .env from template..."
     - envsubst < "${ENV_FILE}" > "${LOCAL_DOTENV}"
-    
+
     - echo "Updating remote repository with retry logic..."
     - |
       ssh -p "${SSH_PORT}" "${SSH_USER}@${CONTROLLER}" \
@@ -52,10 +52,10 @@ variables:
            git fetch --all && git reset --hard origin/${CI_COMMIT_BRANCH} && git pull && break || \
            echo 'Git lock failed, retrying in 5s...' && sleep 5; \
          done"
-    
+
     - echo "Uploading configuration..."
     - scp -P "${SSH_PORT}" "${LOCAL_DOTENV}" "${SSH_USER}@${CONTROLLER}:${REMOTE_PATH}/.env"
-    
+
     - echo "Executing remote deployment..."
     - |
       ssh -p "${SSH_PORT}" "${SSH_USER}@${CONTROLLER}" \
@@ -139,3 +139,60 @@ deploy_prometheus:
     - if: $CI_COMMIT_BRANCH == "develop"
       changes:
         - services/prometheus/**
+
+deploy_ai_dev_orchestrator:
+  extends: .setup_ssh
+  stage: deploy
+  variables:
+    SERVICE_NAME: "ai-dev-orchestrator"
+    ALLOWED_REPOS_FILE: "/run/config/allowed-repos.json"
+  script:
+    - echo "--- Deploying Service:${SERVICE_NAME} ---"
+    - SERVICE_ROOT="services/${SERVICE_NAME}"
+    - REMOTE_PATH="${DEPLOY_DIR}/services/${SERVICE_NAME}"
+    - ENV_FILE="${SERVICE_ROOT}/.env.template"
+    - LOCAL_DOTENV="${SERVICE_ROOT}/.env"
+
+    - |
+      if [ ! -f "${ENV_FILE}" ]; then
+        echo "ERROR: ${ENV_FILE} not found"
+        exit 1
+      fi
+
+    - echo "Generating .env from template..."
+    - envsubst < "${ENV_FILE}" > "${LOCAL_DOTENV}"
+
+    - echo "Updating remote repository with retry logic..."
+    - |
+      ssh -p "${SSH_PORT}" "${SSH_USER}@${CONTROLLER}" \
+        "cd ${DEPLOY_DIR} && \
+         for i in {1..5}; do \
+           git fetch --all && git reset --hard origin/${CI_COMMIT_BRANCH} && git pull && break || \
+           echo 'Git lock failed, retrying in 5s...' && sleep 5; \
+         done"
+
+    - echo "Uploading environment file..."
+    - scp -P "${SSH_PORT}" "${LOCAL_DOTENV}" "${SSH_USER}@${CONTROLLER}:${REMOTE_PATH}/.env"
+
+    - |
+      if [ -n "${AI_DEV_ORCHESTRATOR_ALLOWED_REPOS_FILE:-}" ]; then
+        echo "Uploading allowed repo file..."
+        ssh -p "${SSH_PORT}" "${SSH_USER}@${CONTROLLER}" "mkdir -p ${REMOTE_PATH}/conf"
+        scp -P "${SSH_PORT}" "${AI_DEV_ORCHESTRATOR_ALLOWED_REPOS_FILE}" "${SSH_USER}@${CONTROLLER}:${REMOTE_PATH}/conf/allowed-repos.json"
+      else
+        echo "AI_DEV_ORCHESTRATOR_ALLOWED_REPOS_FILE not provided; relying on ALLOWED_REPOS_JSON or existing remote conf"
+      fi
+
+    - echo "Executing remote deployment..."
+    - |
+      ssh -p "${SSH_PORT}" "${SSH_USER}@${CONTROLLER}" \
+        "cd ${REMOTE_PATH} && \
+         docker compose up -d --build && \
+         echo 'Deployment of ${SERVICE_NAME} completed successfully'"
+  after_script:
+    - rm -f "services/${SERVICE_NAME}/.env" || true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+      changes:
+        - .gitlab-ci.yml
+        - services/ai-dev-orchestrator/**
