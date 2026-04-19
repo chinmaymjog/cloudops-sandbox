@@ -11,6 +11,8 @@ workflow:
 
 variables:
   DEPLOY_DIR: "/services"
+  SSH_USER: "manage"
+  SSH_PORT: "2292"
 
 # Hidden job for SSH & Tooling Setup
 .setup_ssh:
@@ -22,7 +24,6 @@ variables:
     - ssh-add "${SSH_PRIVATE_KEY}"
     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
     - cp "${SSH_KNOWN_HOSTS}" ~/.ssh/known_hosts && chmod 644 ~/.ssh/known_hosts
-    - echo "StrictHostKeyChecking no" >> ~/.ssh/config
 
 # Hidden job for Deployment Logic
 .deploy_template:
@@ -47,10 +48,14 @@ variables:
     - echo "Updating remote repository with retry logic..."
     - |
       ssh -p "${SSH_PORT}" "${SSH_USER}@${CONTROLLER}" \
-        "cd ${DEPLOY_DIR} && \
-         for i in {1..5}; do \
-           git fetch --all && git reset --hard origin/${CI_COMMIT_BRANCH} && git pull && break || \
-           echo 'Git lock failed, retrying in 5s...' && sleep 5; \
+        "set -euo pipefail; \
+         cd ${DEPLOY_DIR}; \
+         for i in 1 2 3 4 5; do \
+           git fetch origin && \
+           git reset --hard origin/${CI_COMMIT_BRANCH} && \
+           git clean -fd && \
+           break || \
+           { echo 'Git sync failed, retrying in 5s...'; sleep 5; }; \
          done"
 
     - echo "Uploading configuration..."
@@ -59,9 +64,14 @@ variables:
     - echo "Executing remote deployment..."
     - |
       ssh -p "${SSH_PORT}" "${SSH_USER}@${CONTROLLER}" \
-        "cd ${REMOTE_PATH} && \
+        "set -euo pipefail; \
+         cd ${REMOTE_PATH} && \
          docker compose pull && \
-         docker compose up -d && \
+         docker compose up -d --remove-orphans && \
+         docker compose ps && \
+         if [ -n \"${HEALTHCHECK_CMD:-}\" ]; then \
+           eval \"${HEALTHCHECK_CMD}\"; \
+         fi && \
          echo 'Deployment of ${SERVICE_NAME} completed successfully'"
   after_script:
     - rm -f "services/${SERVICE_NAME}/.env" || true
@@ -117,6 +127,7 @@ deploy_n8n:
   extends: .deploy_template
   variables:
     SERVICE_NAME: "n8n"
+    HEALTHCHECK_CMD: "curl -fsS --max-time 10 http://127.0.0.1:5678/healthz >/dev/null"
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
       changes:
@@ -135,6 +146,7 @@ deploy_prometheus:
   extends: .deploy_template
   variables:
     SERVICE_NAME: "prometheus"
+    HEALTHCHECK_CMD: "curl -fsS --max-time 10 http://127.0.0.1:9090/-/healthy >/dev/null"
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
       changes:
