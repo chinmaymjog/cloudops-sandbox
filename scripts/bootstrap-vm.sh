@@ -112,20 +112,50 @@ EOF
 }
 
 ensure_repo_checkout() {
-  if [[ -z "${REPO_URL}" ]]; then
-    log "REPO_URL not set; skipping repo clone/update"
+  mkdir -p "${DEPLOY_DIR}"
+
+  if [[ -d "${DEPLOY_DIR}/.git" ]]; then
+    if [[ -n "${REPO_URL}" ]]; then
+      if git -C "${DEPLOY_DIR}" remote get-url origin >/dev/null 2>&1; then
+        current_origin="$(git -C "${DEPLOY_DIR}" remote get-url origin || true)"
+        if [[ "${current_origin}" != "${REPO_URL}" ]]; then
+          log "Updating origin remote in ${DEPLOY_DIR}"
+          git -C "${DEPLOY_DIR}" remote set-url origin "${REPO_URL}"
+        fi
+      else
+        log "Adding origin remote in ${DEPLOY_DIR}"
+        git -C "${DEPLOY_DIR}" remote add origin "${REPO_URL}"
+      fi
+
+      log "Updating existing repo in ${DEPLOY_DIR}"
+      git -C "${DEPLOY_DIR}" fetch origin
+      git -C "${DEPLOY_DIR}" checkout -B "${REPO_BRANCH}" "origin/${REPO_BRANCH}"
+      git -C "${DEPLOY_DIR}" reset --hard "origin/${REPO_BRANCH}"
+      git -C "${DEPLOY_DIR}" clean -fd
+    else
+      log "Existing local git repo found in ${DEPLOY_DIR}; REPO_URL not set, skipping remote sync"
+    fi
     return
   fi
 
-  if [[ -d "${DEPLOY_DIR}/.git" ]]; then
-    log "Updating existing repo in ${DEPLOY_DIR}"
-    git -C "${DEPLOY_DIR}" fetch origin
-    git -C "${DEPLOY_DIR}" reset --hard "origin/${REPO_BRANCH}"
-  else
-    log "Cloning repo ${REPO_URL} into ${DEPLOY_DIR}"
-    mkdir -p "${DEPLOY_DIR}"
-    git clone --branch "${REPO_BRANCH}" "${REPO_URL}" "${DEPLOY_DIR}"
+  if [[ -z "${REPO_URL}" ]]; then
+    log "REPO_URL not set; initializing local git repo in ${DEPLOY_DIR}"
+    git -C "${DEPLOY_DIR}" init
+    return
   fi
+
+  if [[ -z "$(ls -A "${DEPLOY_DIR}")" ]]; then
+    log "Cloning repo ${REPO_URL} into ${DEPLOY_DIR}"
+    git clone --branch "${REPO_BRANCH}" "${REPO_URL}" "${DEPLOY_DIR}"
+    return
+  fi
+
+  log "${DEPLOY_DIR} is non-empty; initializing git and attaching origin"
+  git -C "${DEPLOY_DIR}" init
+  git -C "${DEPLOY_DIR}" remote remove origin >/dev/null 2>&1 || true
+  git -C "${DEPLOY_DIR}" remote add origin "${REPO_URL}"
+  git -C "${DEPLOY_DIR}" fetch origin
+  git -C "${DEPLOY_DIR}" checkout -B "${REPO_BRANCH}" "origin/${REPO_BRANCH}"
 }
 
 ensure_docker_network() {
@@ -142,10 +172,7 @@ ensure_service_directories() {
   local service
 
   service_root="${DEPLOY_DIR}/services"
-  if [[ ! -d "${service_root}" ]]; then
-    log "Service root not found at ${service_root}; skipping directory prep"
-    return
-  fi
+  mkdir -p "${service_root}"
 
   for service in traefik grafana mysql n8n pgsql portainer prometheus wud; do
     mkdir -p "${service_root}/${service}"
