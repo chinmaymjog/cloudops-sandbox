@@ -8,11 +8,20 @@ DEPLOY_DIR="${DEPLOY_DIR:-/services}"
 REPO_URL="${REPO_URL:-}"
 REPO_BRANCH="${REPO_BRANCH:-develop}"
 NETWORK_NAME="${NETWORK_NAME:-control-plane}"
-GITLAB_KEY_PATH="${GITLAB_KEY_PATH:-/root/.ssh/id_ed25519_gitlab}"
+DEPLOY_USER="${DEPLOY_USER:-manage}"
+DEPLOY_HOME="$(getent passwd "${DEPLOY_USER}" | cut -d: -f6 || true)"
+if [[ -z "${DEPLOY_HOME}" ]]; then
+  DEPLOY_HOME="/home/${DEPLOY_USER}"
+fi
+GITLAB_KEY_PATH="${GITLAB_KEY_PATH:-${DEPLOY_HOME}/.ssh/id_ed25519_gitlab}"
 ENABLE_UFW="${ENABLE_UFW:-false}"
 
 log() {
   printf '[bootstrap] %s\n' "$*"
+}
+
+run_as_deploy_user() {
+  sudo -u "${DEPLOY_USER}" "$@"
 }
 
 require_root() {
@@ -75,19 +84,32 @@ install_docker_if_missing() {
 
 setup_gitlab_ssh_key() {
   local ssh_dir
+  local legacy_root_key
+
   ssh_dir="$(dirname "${GITLAB_KEY_PATH}")"
+  legacy_root_key="/root/.ssh/id_ed25519_gitlab"
 
   mkdir -p "${ssh_dir}"
   chmod 700 "${ssh_dir}"
+  chown -R "${DEPLOY_USER}:${DEPLOY_USER}" "${ssh_dir}"
+
+  # Backward-compatibility: migrate an existing root key to deploy user.
+  if [[ "${DEPLOY_USER}" != "root" && ! -f "${GITLAB_KEY_PATH}" && -f "${legacy_root_key}" ]]; then
+    log "Migrating existing root deploy key to ${DEPLOY_USER}"
+    install -m 600 -o "${DEPLOY_USER}" -g "${DEPLOY_USER}" "${legacy_root_key}" "${GITLAB_KEY_PATH}"
+    if [[ -f "${legacy_root_key}.pub" ]]; then
+      install -m 644 -o "${DEPLOY_USER}" -g "${DEPLOY_USER}" "${legacy_root_key}.pub" "${GITLAB_KEY_PATH}.pub"
+    fi
+  fi
 
   if [[ ! -f "${GITLAB_KEY_PATH}" ]]; then
     log "Generating GitLab deploy key: ${GITLAB_KEY_PATH}"
-    ssh-keygen -t ed25519 -C "vm-deploy-key" -f "${GITLAB_KEY_PATH}" -N ""
+    run_as_deploy_user ssh-keygen -t ed25519 -C "vm-deploy-key" -f "${GITLAB_KEY_PATH}" -N ""
   else
     log "GitLab deploy key already exists: ${GITLAB_KEY_PATH}"
   fi
 
-  touch "${ssh_dir}/config"
+  run_as_deploy_user touch "${ssh_dir}/config"
   if ! grep -q "IdentityFile ${GITLAB_KEY_PATH}" "${ssh_dir}/config"; then
     cat >> "${ssh_dir}/config" <<EOF
 Host gitlab.com
@@ -98,14 +120,16 @@ Host gitlab.com
 EOF
   fi
   chmod 600 "${ssh_dir}/config"
+  chown "${DEPLOY_USER}:${DEPLOY_USER}" "${ssh_dir}/config"
 
-  touch "${ssh_dir}/known_hosts"
-  if ! ssh-keygen -F gitlab.com -f "${ssh_dir}/known_hosts" >/dev/null 2>&1; then
-    ssh-keyscan -H gitlab.com >> "${ssh_dir}/known_hosts"
+  run_as_deploy_user touch "${ssh_dir}/known_hosts"
+  if ! run_as_deploy_user ssh-keygen -F gitlab.com -f "${ssh_dir}/known_hosts" >/dev/null 2>&1; then
+    run_as_deploy_user bash -lc "ssh-keyscan -H gitlab.com >> '${ssh_dir}/known_hosts'"
   fi
   chmod 644 "${ssh_dir}/known_hosts"
+  chown "${DEPLOY_USER}:${DEPLOY_USER}" "${ssh_dir}/known_hosts"
 
-  log "Add this public key to GitLab Deploy Keys (read-only)"
+  log "Add this public key to GitLab Deploy Keys (read-only) for ${DEPLOY_USER}"
   echo "-----BEGIN GITLAB DEPLOY PUBLIC KEY-----"
   cat "${GITLAB_KEY_PATH}.pub"
   echo "-----END GITLAB DEPLOY PUBLIC KEY-----"
@@ -113,25 +137,26 @@ EOF
 
 ensure_repo_checkout() {
   mkdir -p "${DEPLOY_DIR}"
+  chown -R "${DEPLOY_USER}:${DEPLOY_USER}" "${DEPLOY_DIR}"
 
   if [[ -d "${DEPLOY_DIR}/.git" ]]; then
     if [[ -n "${REPO_URL}" ]]; then
-      if git -C "${DEPLOY_DIR}" remote get-url origin >/dev/null 2>&1; then
-        current_origin="$(git -C "${DEPLOY_DIR}" remote get-url origin || true)"
+      if run_as_deploy_user git -C "${DEPLOY_DIR}" remote get-url origin >/dev/null 2>&1; then
+        current_origin="$(run_as_deploy_user git -C "${DEPLOY_DIR}" remote get-url origin || true)"
         if [[ "${current_origin}" != "${REPO_URL}" ]]; then
           log "Updating origin remote in ${DEPLOY_DIR}"
-          git -C "${DEPLOY_DIR}" remote set-url origin "${REPO_URL}"
+          run_as_deploy_user git -C "${DEPLOY_DIR}" remote set-url origin "${REPO_URL}"
         fi
       else
         log "Adding origin remote in ${DEPLOY_DIR}"
-        git -C "${DEPLOY_DIR}" remote add origin "${REPO_URL}"
+        run_as_deploy_user git -C "${DEPLOY_DIR}" remote add origin "${REPO_URL}"
       fi
 
       log "Updating existing repo in ${DEPLOY_DIR}"
-      git -C "${DEPLOY_DIR}" fetch origin
-      git -C "${DEPLOY_DIR}" checkout -B "${REPO_BRANCH}" "origin/${REPO_BRANCH}"
-      git -C "${DEPLOY_DIR}" reset --hard "origin/${REPO_BRANCH}"
-      git -C "${DEPLOY_DIR}" clean -fd
+      run_as_deploy_user git -C "${DEPLOY_DIR}" fetch origin
+      run_as_deploy_user git -C "${DEPLOY_DIR}" checkout -B "${REPO_BRANCH}" "origin/${REPO_BRANCH}"
+      run_as_deploy_user git -C "${DEPLOY_DIR}" reset --hard "origin/${REPO_BRANCH}"
+      run_as_deploy_user git -C "${DEPLOY_DIR}" clean -fd
     else
       log "Existing local git repo found in ${DEPLOY_DIR}; REPO_URL not set, skipping remote sync"
     fi
@@ -140,22 +165,22 @@ ensure_repo_checkout() {
 
   if [[ -z "${REPO_URL}" ]]; then
     log "REPO_URL not set; initializing local git repo in ${DEPLOY_DIR}"
-    git -C "${DEPLOY_DIR}" init
+    run_as_deploy_user git -C "${DEPLOY_DIR}" init
     return
   fi
 
   if [[ -z "$(ls -A "${DEPLOY_DIR}")" ]]; then
     log "Cloning repo ${REPO_URL} into ${DEPLOY_DIR}"
-    git clone --branch "${REPO_BRANCH}" "${REPO_URL}" "${DEPLOY_DIR}"
+    run_as_deploy_user git clone --branch "${REPO_BRANCH}" "${REPO_URL}" "${DEPLOY_DIR}"
     return
   fi
 
   log "${DEPLOY_DIR} is non-empty; initializing git and attaching origin"
-  git -C "${DEPLOY_DIR}" init
-  git -C "${DEPLOY_DIR}" remote remove origin >/dev/null 2>&1 || true
-  git -C "${DEPLOY_DIR}" remote add origin "${REPO_URL}"
-  git -C "${DEPLOY_DIR}" fetch origin
-  git -C "${DEPLOY_DIR}" checkout -B "${REPO_BRANCH}" "origin/${REPO_BRANCH}"
+  run_as_deploy_user git -C "${DEPLOY_DIR}" init
+  run_as_deploy_user git -C "${DEPLOY_DIR}" remote remove origin >/dev/null 2>&1 || true
+  run_as_deploy_user git -C "${DEPLOY_DIR}" remote add origin "${REPO_URL}"
+  run_as_deploy_user git -C "${DEPLOY_DIR}" fetch origin
+  run_as_deploy_user git -C "${DEPLOY_DIR}" checkout -B "${REPO_BRANCH}" "origin/${REPO_BRANCH}"
 }
 
 ensure_docker_network() {
@@ -215,8 +240,9 @@ print_summary() {
   echo "Next steps:"
   echo "1) Add deploy key above to GitLab (repo Deploy Key or bot account key)."
   echo "2) Set CI variables: SSH_PRIVATE_KEY, SSH_KNOWN_HOSTS, SSH_USER, SSH_PORT, CONTROLLER."
-  echo "3) Confirm repo path on VM: ${DEPLOY_DIR}"
-  echo "4) Run first deployment from GitLab CI." 
+  echo "3) Confirm deploy user and key path: ${DEPLOY_USER} / ${GITLAB_KEY_PATH}"
+  echo "4) Confirm repo path on VM: ${DEPLOY_DIR}"
+  echo "5) Run first deployment from GitLab CI."
 }
 
 main() {
