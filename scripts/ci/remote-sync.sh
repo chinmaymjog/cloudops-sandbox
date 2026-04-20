@@ -14,17 +14,12 @@ echo "[REMOTE] Ensuring deploy directory exists: ${DEPLOY_DIR}"
 sudo -n mkdir -p "${DEPLOY_DIR}"
 
 owner="$(stat -c '%U:%G' "${DEPLOY_DIR}" 2>/dev/null || true)"
-if [ "${owner}" != "${REMOTE_OWNER}:${REMOTE_OWNER}" ]; then
-  echo "[REMOTE] Fixing ownership for repo root: ${DEPLOY_DIR}"
-  sudo -n chown "${REMOTE_OWNER}:${REMOTE_OWNER}" "${DEPLOY_DIR}"
-fi
+echo "[REMOTE] Repo owner is ${owner}; expected deploy user ${REMOTE_OWNER}"
 
-if [ -d "${DEPLOY_DIR}/.git" ]; then
-  git_owner="$(stat -c '%U:%G' "${DEPLOY_DIR}/.git" 2>/dev/null || true)"
-  if [ "${git_owner}" != "${REMOTE_OWNER}:${REMOTE_OWNER}" ]; then
-    echo "[REMOTE] Fixing ownership for git metadata: ${DEPLOY_DIR}/.git"
-    sudo -n chown -R "${REMOTE_OWNER}:${REMOTE_OWNER}" "${DEPLOY_DIR}/.git"
-  fi
+if [ ! -w "${DEPLOY_DIR}" ]; then
+  echo "[REMOTE] ${DEPLOY_DIR} is not writable by deploy user."
+  echo "[REMOTE] Fix once during bootstrap/manual prep, then rerun deploy."
+  exit 1
 fi
 
 if ! git config --global --get-all safe.directory 2>/dev/null | grep -Fxq "${DEPLOY_DIR}"; then
