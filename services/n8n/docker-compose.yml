@@ -7,26 +7,15 @@ services:
     volumes:
       - ./data:/home/node/.n8n
     environment:
+      - N8N_RUNNERS_ENABLED=true
+      - N8N_HOST=n8n.${APP_DOMAIN}
+      - WEBHOOK_URL=http://n8n.${APP_DOMAIN}/
+      - N8N_PORT=5678
+      - N8N_PROXY_HOPS=1
       - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
       - TZ=${TZ}
-      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
-      - N8N_RUNNERS_ENABLED=true
-      - WEBHOOK_URL=https://n8n.${APP_DOMAIN}
-      - N8N_PROXY_HOPS=1
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
 
-      # Auth
-      - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE}
-      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER}
-      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
-
-      # Database
-      - DB_TYPE=${DB_TYPE:-sqlite}
-      - DB_POSTGRESDB_HOST=${DB_POSTGRESDB_HOST:-}
-      - DB_POSTGRESDB_PORT=${DB_POSTGRESDB_PORT:-5432}
-      - DB_POSTGRESDB_DATABASE=${DB_POSTGRESDB_DATABASE:-}
-      - DB_POSTGRESDB_USER=${DB_POSTGRESDB_USER:-}
-      - DB_POSTGRESDB_PASSWORD=${DB_POSTGRESDB_PASSWORD:-}
     networks:
       - control-plane
     labels:
