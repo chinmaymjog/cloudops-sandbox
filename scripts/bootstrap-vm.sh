@@ -24,18 +24,25 @@ run_as_deploy_user() {
   sudo -H -u "${DEPLOY_USER}" "$@"
 }
 
-ensure_path_owner() {
-  local path="$1"
-  local recursive="${2:-false}"
+ensure_deploy_dir_access() {
+  local owner
 
-  if [[ ! -e "${path}" ]]; then
+  if [[ ! -d "${DEPLOY_DIR}" ]]; then
+    log "Creating deploy dir with owner ${DEPLOY_USER}: ${DEPLOY_DIR}"
+    install -d -m 0755 -o "${DEPLOY_USER}" -g "${DEPLOY_USER}" "${DEPLOY_DIR}"
     return
   fi
 
-  if [[ "${recursive}" == "true" ]]; then
-    chown -R "${DEPLOY_USER}:${DEPLOY_USER}" "${path}"
-  else
-    chown "${DEPLOY_USER}:${DEPLOY_USER}" "${path}"
+  owner="$(stat -c '%U:%G' "${DEPLOY_DIR}" 2>/dev/null || true)"
+  if [[ "${owner}" != "${DEPLOY_USER}:${DEPLOY_USER}" ]]; then
+    echo "Deploy dir owner is ${owner}, expected ${DEPLOY_USER}:${DEPLOY_USER}" >&2
+    echo "Fix once manually and rerun bootstrap: sudo chown ${DEPLOY_USER}:${DEPLOY_USER} '${DEPLOY_DIR}'" >&2
+    exit 1
+  fi
+
+  if ! run_as_deploy_user test -w "${DEPLOY_DIR}"; then
+    echo "Deploy user ${DEPLOY_USER} cannot write to ${DEPLOY_DIR}" >&2
+    exit 1
   fi
 }
 
@@ -52,11 +59,6 @@ ensure_git_safe_directory() {
     log "Adding git safe.directory for ${DEPLOY_USER}: ${DEPLOY_DIR}"
     run_as_deploy_user git config --global --add safe.directory "${DEPLOY_DIR}"
   fi
-}
-
-ensure_repo_control_permissions() {
-  ensure_path_owner "${DEPLOY_DIR}"
-  ensure_path_owner "${DEPLOY_DIR}/.git" true
 }
 
 require_root() {
@@ -171,11 +173,9 @@ EOF
 }
 
 ensure_repo_checkout() {
-  mkdir -p "${DEPLOY_DIR}"
-  ensure_path_owner "${DEPLOY_DIR}"
+  ensure_deploy_dir_access
 
   if [[ -d "${DEPLOY_DIR}/.git" ]]; then
-    ensure_repo_control_permissions
     ensure_git_safe_directory
 
     if [[ -n "${REPO_URL}" ]]; then
@@ -204,7 +204,6 @@ ensure_repo_checkout() {
   if [[ -z "${REPO_URL}" ]]; then
     log "REPO_URL not set; initializing local git repo in ${DEPLOY_DIR}"
     run_as_deploy_user git -C "${DEPLOY_DIR}" init
-    ensure_repo_control_permissions
     ensure_git_safe_directory
     return
   fi
@@ -212,7 +211,6 @@ ensure_repo_checkout() {
   if [[ -z "$(ls -A "${DEPLOY_DIR}")" ]]; then
     log "Cloning repo ${REPO_URL} into ${DEPLOY_DIR}"
     run_as_deploy_user git clone --branch "${REPO_BRANCH}" "${REPO_URL}" "${DEPLOY_DIR}"
-    ensure_repo_control_permissions
     ensure_git_safe_directory
     return
   fi
@@ -223,7 +221,6 @@ ensure_repo_checkout() {
   run_as_deploy_user git -C "${DEPLOY_DIR}" remote add origin "${REPO_URL}"
   run_as_deploy_user git -C "${DEPLOY_DIR}" fetch origin
   run_as_deploy_user git -C "${DEPLOY_DIR}" checkout -B "${REPO_BRANCH}" "origin/${REPO_BRANCH}"
-  ensure_repo_control_permissions
   ensure_git_safe_directory
 }
 
@@ -234,28 +231,6 @@ ensure_docker_network() {
     log "Creating Docker network: ${NETWORK_NAME}"
     docker network create "${NETWORK_NAME}"
   fi
-}
-
-ensure_service_directories() {
-  local service_root
-  local service
-
-  service_root="${DEPLOY_DIR}/services"
-  mkdir -p "${service_root}"
-
-  for service in traefik grafana mysql n8n pgsql portainer prometheus wud; do
-    mkdir -p "${service_root}/${service}"
-  done
-
-  mkdir -p "${service_root}/traefik/certs" "${service_root}/traefik/log"
-  mkdir -p "${service_root}/grafana/data"
-  mkdir -p "${service_root}/mysql/data"
-  mkdir -p "${service_root}/n8n/data"
-  mkdir -p "${service_root}/pgsql/data"
-  mkdir -p "${service_root}/portainer/data"
-  mkdir -p "${service_root}/prometheus/data"
-
-  log "Service directories prepared under ${service_root}"
 }
 
 configure_firewall_if_requested() {
@@ -297,7 +272,6 @@ main() {
   setup_gitlab_ssh_key
   ensure_repo_checkout
   ensure_docker_network
-  ensure_service_directories
   configure_firewall_if_requested
   print_summary
 }
