@@ -21,7 +21,42 @@ log() {
 }
 
 run_as_deploy_user() {
-  sudo -u "${DEPLOY_USER}" "$@"
+  sudo -H -u "${DEPLOY_USER}" "$@"
+}
+
+ensure_path_owner() {
+  local path="$1"
+  local recursive="${2:-false}"
+
+  if [[ ! -e "${path}" ]]; then
+    return
+  fi
+
+  if [[ "${recursive}" == "true" ]]; then
+    chown -R "${DEPLOY_USER}:${DEPLOY_USER}" "${path}"
+  else
+    chown "${DEPLOY_USER}:${DEPLOY_USER}" "${path}"
+  fi
+}
+
+ensure_git_safe_directory() {
+  local current_home
+
+  current_home="$(run_as_deploy_user bash -lc 'printf %s "$HOME"')"
+  if [[ -z "${current_home}" ]]; then
+    echo "Could not determine home directory for ${DEPLOY_USER}" >&2
+    exit 1
+  fi
+
+  if ! run_as_deploy_user git config --global --get-all safe.directory 2>/dev/null | grep -Fxq "${DEPLOY_DIR}"; then
+    log "Adding git safe.directory for ${DEPLOY_USER}: ${DEPLOY_DIR}"
+    run_as_deploy_user git config --global --add safe.directory "${DEPLOY_DIR}"
+  fi
+}
+
+ensure_repo_control_permissions() {
+  ensure_path_owner "${DEPLOY_DIR}"
+  ensure_path_owner "${DEPLOY_DIR}/.git" true
 }
 
 require_root() {
@@ -137,9 +172,12 @@ EOF
 
 ensure_repo_checkout() {
   mkdir -p "${DEPLOY_DIR}"
-  chown -R "${DEPLOY_USER}:${DEPLOY_USER}" "${DEPLOY_DIR}"
+  ensure_path_owner "${DEPLOY_DIR}"
 
   if [[ -d "${DEPLOY_DIR}/.git" ]]; then
+    ensure_repo_control_permissions
+    ensure_git_safe_directory
+
     if [[ -n "${REPO_URL}" ]]; then
       if run_as_deploy_user git -C "${DEPLOY_DIR}" remote get-url origin >/dev/null 2>&1; then
         current_origin="$(run_as_deploy_user git -C "${DEPLOY_DIR}" remote get-url origin || true)"
@@ -166,12 +204,16 @@ ensure_repo_checkout() {
   if [[ -z "${REPO_URL}" ]]; then
     log "REPO_URL not set; initializing local git repo in ${DEPLOY_DIR}"
     run_as_deploy_user git -C "${DEPLOY_DIR}" init
+    ensure_repo_control_permissions
+    ensure_git_safe_directory
     return
   fi
 
   if [[ -z "$(ls -A "${DEPLOY_DIR}")" ]]; then
     log "Cloning repo ${REPO_URL} into ${DEPLOY_DIR}"
     run_as_deploy_user git clone --branch "${REPO_BRANCH}" "${REPO_URL}" "${DEPLOY_DIR}"
+    ensure_repo_control_permissions
+    ensure_git_safe_directory
     return
   fi
 
@@ -181,6 +223,8 @@ ensure_repo_checkout() {
   run_as_deploy_user git -C "${DEPLOY_DIR}" remote add origin "${REPO_URL}"
   run_as_deploy_user git -C "${DEPLOY_DIR}" fetch origin
   run_as_deploy_user git -C "${DEPLOY_DIR}" checkout -B "${REPO_BRANCH}" "origin/${REPO_BRANCH}"
+  ensure_repo_control_permissions
+  ensure_git_safe_directory
 }
 
 ensure_docker_network() {
