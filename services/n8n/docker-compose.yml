@@ -13,7 +13,7 @@ services:
       - TZ=${TZ}
       - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
       - N8N_RUNNERS_ENABLED=true
-      - WEBHOOK_URL=https://n8n-${APP_DOMAIN}
+      - WEBHOOK_URL=https://n8n.${APP_DOMAIN}
       - N8N_PROXY_HOPS=1
       # Auth
       - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE}
@@ -39,4 +39,3 @@ services:
 networks:
   control-plane:
     external: true
-    name: control-plane

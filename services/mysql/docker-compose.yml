@@ -16,9 +16,8 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-
   # phpmyadmin:
-  #   image: phpmyadmin/phpmyadmin:5.2.2
+  #   image: phpmyadmin/phpmyadmin:${PHPMYADMIN_TAG}
   #   container_name: phpmyadmin
   #   hostname: phpmyadmin
   #   restart: unless-stopped
@@ -32,7 +31,7 @@ services:
   #     - PMA_ARBITRARY=1
   #   labels:
   #     - traefik.enable=true
-  #     - traefik.http.routers.phpmyadmin.rule=Host(`phpmyadmin-${APP_DOMAIN}`)
+  #     - traefik.http.routers.phpmyadmin.rule=Host(`phpmyadmin.${APP_DOMAIN}`)
   #     - traefik.http.routers.phpmyadmin.entrypoints=websecure
   #     - traefik.http.routers.phpmyadmin.tls.certresolver=myresolver
   #     - traefik.http.services.phpmyadmin.loadbalancer.server.port=80
