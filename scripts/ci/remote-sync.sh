@@ -15,13 +15,21 @@ sudo -n mkdir -p "${DEPLOY_DIR}"
 
 owner="$(stat -c '%U:%G' "${DEPLOY_DIR}" 2>/dev/null || true)"
 if [ "${owner}" != "${REMOTE_OWNER}:${REMOTE_OWNER}" ]; then
-  echo "[REMOTE] Fixing ownership for ${DEPLOY_DIR}"
-  sudo -n chown -R "${REMOTE_OWNER}:${REMOTE_OWNER}" "${DEPLOY_DIR}"
+  echo "[REMOTE] Fixing ownership for repo root: ${DEPLOY_DIR}"
+  sudo -n chown "${REMOTE_OWNER}:${REMOTE_OWNER}" "${DEPLOY_DIR}"
 fi
 
-if ! sudo -n git config --system --get-all safe.directory 2>/dev/null | grep -Fxq "${DEPLOY_DIR}"; then
-  echo "[REMOTE] Adding git safe.directory: ${DEPLOY_DIR}"
-  sudo -n git config --system --add safe.directory "${DEPLOY_DIR}"
+if [ -d "${DEPLOY_DIR}/.git" ]; then
+  git_owner="$(stat -c '%U:%G' "${DEPLOY_DIR}/.git" 2>/dev/null || true)"
+  if [ "${git_owner}" != "${REMOTE_OWNER}:${REMOTE_OWNER}" ]; then
+    echo "[REMOTE] Fixing ownership for git metadata: ${DEPLOY_DIR}/.git"
+    sudo -n chown -R "${REMOTE_OWNER}:${REMOTE_OWNER}" "${DEPLOY_DIR}/.git"
+  fi
+fi
+
+if ! git config --global --get-all safe.directory 2>/dev/null | grep -Fxq "${DEPLOY_DIR}"; then
+  echo "[REMOTE] Adding git safe.directory for ${REMOTE_OWNER}: ${DEPLOY_DIR}"
+  git config --global --add safe.directory "${DEPLOY_DIR}"
 fi
 
 cd "${DEPLOY_DIR}"
