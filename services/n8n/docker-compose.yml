@@ -4,8 +4,6 @@ services:
     container_name: n8n
     hostname: n8n
     restart: unless-stopped
-    # ports:
-    #   - "5678:5678"
     volumes:
       - ./data:/home/node/.n8n
     environment:
@@ -15,10 +13,13 @@ services:
       - N8N_RUNNERS_ENABLED=true
       - WEBHOOK_URL=https://n8n.${APP_DOMAIN}
       - N8N_PROXY_HOPS=1
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+
       # Auth
       - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE}
       - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER}
       - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
+
       # Database
       - DB_TYPE=${DB_TYPE:-sqlite}
       - DB_POSTGRESDB_HOST=${DB_POSTGRESDB_HOST:-}
