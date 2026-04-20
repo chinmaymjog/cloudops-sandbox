@@ -4,11 +4,12 @@ services:
     container_name: prometheus
     hostname: prometheus
     restart: unless-stopped
+    user: "65534"
     # ports:
     #   - "9090:9090"
     volumes:
       - ./conf/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./data:/etc/prometheus
+      - ./data:/prometheus
     networks:
       - control-plane
     labels:
