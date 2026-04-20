@@ -15,7 +15,7 @@ services:
       - traefik.enable=true
       - traefik.http.routers.grafana.rule=Host(`grafana.${APP_DOMAIN}`)
       - traefik.http.routers.grafana.entrypoints=websecure
-      - traefik.http.routers.grafana.tls.certresolver=myresolver
+      - traefik.http.routers.grafana.tls=true
       - traefik.http.services.grafana.loadbalancer.server.port=3000
       - traefik.http.routers.grafana.middlewares=auth
 
