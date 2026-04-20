@@ -13,6 +13,7 @@ variables:
   DEPLOY_DIR: "/services"
   SSH_USER: "manage"
   SSH_PORT: "2292"
+  REMOTE_OWNER: "manage"
 
 # Hidden job for SSH & Tooling Setup
 .setup_ssh:
@@ -49,6 +50,14 @@ variables:
     - |
       ssh -p "${SSH_PORT}" "${SSH_USER}@${CONTROLLER}" \
         "set -euo pipefail; \
+         sudo -n mkdir -p ${DEPLOY_DIR}; \
+         owner=\"\$(stat -c '%U:%G' ${DEPLOY_DIR} 2>/dev/null || true)\"; \
+         if [ \"\${owner}\" != \"${REMOTE_OWNER}:${REMOTE_OWNER}\" ]; then \
+           sudo -n chown -R ${REMOTE_OWNER}:${REMOTE_OWNER} ${DEPLOY_DIR}; \
+         fi; \
+         if ! sudo -n git config --system --get-all safe.directory 2>/dev/null | grep -Fxq \"${DEPLOY_DIR}\"; then \
+           sudo -n git config --system --add safe.directory ${DEPLOY_DIR}; \
+         fi; \
          cd ${DEPLOY_DIR}; \
          for i in 1 2 3 4 5; do \
            git fetch origin && \
@@ -59,7 +68,9 @@ variables:
          done"
 
     - echo "Uploading configuration..."
-    - scp -P "${SSH_PORT}" "${LOCAL_DOTENV}" "${SSH_USER}@${CONTROLLER}:${REMOTE_PATH}/.env"
+    - ssh -p "${SSH_PORT}" "${SSH_USER}@${CONTROLLER}" "mkdir -p ${REMOTE_PATH}"
+    - scp -P "${SSH_PORT}" "${LOCAL_DOTENV}"
+      "${SSH_USER}@${CONTROLLER}:${REMOTE_PATH}/.env"
 
     - echo "Executing remote deployment..."
     - |
@@ -177,14 +188,28 @@ deploy_ai_dev_orchestrator:
     - echo "Updating remote repository with retry logic..."
     - |
       ssh -p "${SSH_PORT}" "${SSH_USER}@${CONTROLLER}" \
-        "cd ${DEPLOY_DIR} && \
-         for i in {1..5}; do \
-           git fetch --all && git reset --hard origin/${CI_COMMIT_BRANCH} && git pull && break || \
-           echo 'Git lock failed, retrying in 5s...' && sleep 5; \
+        "set -euo pipefail; \
+         sudo -n mkdir -p ${DEPLOY_DIR}; \
+         owner=\"\$(stat -c '%U:%G' ${DEPLOY_DIR} 2>/dev/null || true)\"; \
+         if [ \"\${owner}\" != \"${REMOTE_OWNER}:${REMOTE_OWNER}\" ]; then \
+           sudo -n chown -R ${REMOTE_OWNER}:${REMOTE_OWNER} ${DEPLOY_DIR}; \
+         fi; \
+         if ! sudo -n git config --system --get-all safe.directory 2>/dev/null | grep -Fxq \"${DEPLOY_DIR}\"; then \
+           sudo -n git config --system --add safe.directory ${DEPLOY_DIR}; \
+         fi; \
+         cd ${DEPLOY_DIR}; \
+         for i in 1 2 3 4 5; do \
+           git fetch origin && \
+           git reset --hard origin/${CI_COMMIT_BRANCH} && \
+           git clean -fd && \
+           break || \
+           { echo 'Git sync failed, retrying in 5s...'; sleep 5; }; \
          done"
 
     - echo "Uploading environment file..."
-    - scp -P "${SSH_PORT}" "${LOCAL_DOTENV}" "${SSH_USER}@${CONTROLLER}:${REMOTE_PATH}/.env"
+    - ssh -p "${SSH_PORT}" "${SSH_USER}@${CONTROLLER}" "mkdir -p ${REMOTE_PATH}"
+    - scp -P "${SSH_PORT}" "${LOCAL_DOTENV}"
+      "${SSH_USER}@${CONTROLLER}:${REMOTE_PATH}/.env"
 
     - |
       if [ -n "${AI_DEV_ORCHESTRATOR_ALLOWED_REPOS_FILE:-}" ]; then
@@ -198,8 +223,11 @@ deploy_ai_dev_orchestrator:
     - echo "Executing remote deployment..."
     - |
       ssh -p "${SSH_PORT}" "${SSH_USER}@${CONTROLLER}" \
-        "cd ${REMOTE_PATH} && \
-         docker compose up -d --build && \
+        "set -euo pipefail; \
+         cd ${REMOTE_PATH} && \
+         docker compose pull && \
+         docker compose up -d --remove-orphans && \
+         docker compose ps && \
          echo 'Deployment of ${SERVICE_NAME} completed successfully'"
   after_script:
     - rm -f "services/${SERVICE_NAME}/.env" || true
