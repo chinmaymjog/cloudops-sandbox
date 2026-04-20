@@ -15,9 +15,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
-
   # adminer:
-  # image: adminer
+  # image: adminer:${ADMINER_TAG}
   # container_name: adminer
   # hostname: adminer
   # restart: unless-stopped
@@ -27,7 +26,7 @@ services:
   #   - control-plane
   # labels:
   #   - traefik.enable=true
-  #   - traefik.http.routers.adminer.rule=Host(`adminer-${APP_DOMAIN}`)
+  #   - traefik.http.routers.adminer.rule=Host(`adminer.${APP_DOMAIN}`)
   #   - traefik.http.routers.adminer.entrypoints=websecure
   #   - traefik.http.routers.adminer.tls.certresolver=myresolver
   #   - traefik.http.services.adminer.loadbalancer.server.port=8080
