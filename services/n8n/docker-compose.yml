@@ -4,6 +4,7 @@ services:
     container_name: n8n
     hostname: n8n
     restart: unless-stopped
+    user: "1000"
     volumes:
       - ./data:/home/node/.n8n
     environment:

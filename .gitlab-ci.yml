@@ -123,7 +123,6 @@ deploy_n8n:
   extends: .deploy_template
   variables:
     SERVICE_NAME: "n8n"
-    HEALTHCHECK_CMD: "curl -fsS --max-time 10 http://127.0.0.1:5678/healthz >/dev/null"
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
       changes:
@@ -142,7 +141,6 @@ deploy_prometheus:
   extends: .deploy_template
   variables:
     SERVICE_NAME: "prometheus"
-    HEALTHCHECK_CMD: "curl -fsS --max-time 10 http://127.0.0.1:9090/-/healthy >/dev/null"
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
       changes:
