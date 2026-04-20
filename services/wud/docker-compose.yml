@@ -19,7 +19,7 @@ services:
       - traefik.enable=true
       - traefik.http.routers.wud.rule=Host(`wud.${APP_DOMAIN}`)
       - traefik.http.routers.wud.entrypoints=websecure
-      - traefik.http.routers.wud.tls.certresolver=myresolver
+      - traefik.http.routers.wud.tls=true
       - traefik.http.services.wud.loadbalancer.server.port=3000
       - traefik.http.routers.wud.middlewares=auth
 

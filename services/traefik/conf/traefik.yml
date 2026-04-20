@@ -106,7 +106,7 @@ api:
   # Optional
   # Default: false
   #
-  insecure: true
+  insecure: false
 
 # Enabled Dashboard
 #
@@ -121,11 +121,11 @@ dashboard: true
 
 # Enable ping
 #ping:
-  # Name of the related entry point
-  #
-  # Optional
-  # Default: "traefik"
-  #
+# Name of the related entry point
+#
+# Optional
+# Default: "traefik"
+#
 #  entryPoint: traefik
 
 ################################################################
