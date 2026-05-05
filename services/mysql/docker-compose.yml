@@ -3,6 +3,7 @@ services:
     image: mysql:${MYSQL_TAG}
     container_name: mysql
     hostname: mysql
+    # user: mysql
     restart: unless-stopped
     # ports:
     #   - "3306:3306"

@@ -3,12 +3,18 @@ services:
     image: grafana/grafana-oss:${GRAFANA_TAG}
     container_name: grafana
     hostname: grafana
+    # user: "472"
     restart: unless-stopped
-    user: "0"
     # ports:
     #   - "3000:3000"
     volumes:
       - ./data:/var/lib/grafana
+    environment:
+      - GF_DATABASE_TYPE=postgres
+      - GF_DATABASE_HOST=postgresql:5432
+      - GF_DATABASE_NAME=grafana
+      - GF_DATABASE_USER=grafana
+      - GF_DATABASE_PASSWORD=${GRAFANA_DB_PASSWORD}
     networks:
       - control-plane
     labels:
