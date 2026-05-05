@@ -49,11 +49,13 @@ if [ ${#MISSING_DEPS[@]} -ne 0 ]; then
 fi
 
 # --- 3. Environment Setup ---
-if [ ! -f "$ROOT_ENV" ]; then
-    error "Root '.env' file not found at $ROOT_ENV!"
+if [ -f "$ROOT_ENV" ]; then
+    log "Loading local configuration from .env"
+else
+    log "No root .env found; relying on system/CI environment variables."
 fi
 
-log "Generating service environment variables..."
+log "Generating service-level environment files..."
 count=0
 for service in "$SERVICES_DIR"/*; do
     if [ -d "$service" ]; then
