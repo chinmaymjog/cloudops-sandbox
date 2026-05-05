@@ -4,6 +4,8 @@ services:
     container_name: grafana
     hostname: grafana
     restart: unless-stopped
+    # ports:
+    #   - "3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
     networks:

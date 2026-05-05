@@ -4,6 +4,8 @@ services:
     container_name: postgresql
     hostname: postgresql
     restart: unless-stopped
+    # ports:
+    #   - "5432:5432"
     networks:
       - control-plane
     volumes:
