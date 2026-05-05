@@ -26,3 +26,4 @@ networks:
 
 volumes:
   prometheus-data:
+    name: prometheus-data
