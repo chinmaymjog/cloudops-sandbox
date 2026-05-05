@@ -36,4 +36,6 @@ networks:
 
 volumes:
   traefik-log:
+    name: traefik-log
   traefik-certs:
+    name: traefik-certs

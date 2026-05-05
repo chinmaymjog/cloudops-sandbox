@@ -30,3 +30,4 @@ networks:
 
 volumes:
   grafana-data:
+    name: grafana-data
