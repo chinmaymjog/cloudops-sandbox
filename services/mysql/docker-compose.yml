@@ -4,6 +4,8 @@ services:
     container_name: mysql
     hostname: mysql
     restart: unless-stopped
+    # ports:
+    #   - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     networks:

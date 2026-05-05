@@ -4,6 +4,8 @@ services:
     container_name: n8n
     hostname: n8n
     restart: unless-stopped
+    # ports:
+    #   - "5678:5678"
     user: "1000"
     volumes:
       - n8n-data:/home/node/.n8n
