@@ -3,6 +3,7 @@ services:
     image: postgres:${POSTGRES_TAG}
     container_name: postgresql
     hostname: postgresql
+    # user: postgres
     restart: unless-stopped
     # ports:
     #   - "5432:5432"
@@ -10,8 +11,12 @@ services:
       - control-plane
     volumes:
       - ./data:/var/lib/postgresql
+      - ./init-db.d:/docker-entrypoint-initdb.d
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      N8N_DB_PASSWORD: ${N8N_DB_PASSWORD}
+      GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD}
   # adminer:
   # image: adminer:${ADMINER_TAG}
   # container_name: adminer
