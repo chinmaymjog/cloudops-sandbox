@@ -68,7 +68,15 @@ for service in "$SERVICES_DIR"/*; do
                 # shellcheck disable=SC1090
                 source "$ROOT_ENV"
                 set +a
-                envsubst < "$env_template" > "$env_file"
+                
+                # Extract defined variables from template to prevent envsubst from mangling other '$' chars
+                VARS_TO_SUBST=$(grep -oE '\$\{?[A-Z0-9_]+\}?' "$env_template" | sort -u | tr -d '${}' | sed 's/^/$/' | tr '\n' ',' | sed 's/,$//')
+                
+                if [ -z "$VARS_TO_SUBST" ]; then
+                    cp "$env_template" "$env_file"
+                else
+                    envsubst "$VARS_TO_SUBST" < "$env_template" > "$env_file"
+                fi
             )
             log "✅ $service_name: Created/Updated .env"
             ((count++))
