@@ -23,8 +23,9 @@ services:
       - traefik.enable=true
       - traefik.http.routers.keycloak.rule=Host(`keycloak.${APP_DOMAIN}`)
       - traefik.http.routers.keycloak.entrypoints=websecure
-      - traefik.http.routers.keycloak.tls.certresolver=myresolver
+      - traefik.http.routers.keycloak.tls=true
       - traefik.http.services.keycloak.loadbalancer.server.port=8080
+      - traefik.http.routers.keycloak.middlewares=auth
 
 networks:
   control-plane:
