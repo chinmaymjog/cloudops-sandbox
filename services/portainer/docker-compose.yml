@@ -27,3 +27,4 @@ networks:
 
 volumes:
   portainer-data:
+    name: portainer-data

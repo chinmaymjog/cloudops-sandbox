@@ -42,3 +42,4 @@ networks:
 
 volumes:
   n8n-data:
+    name: n8n-data

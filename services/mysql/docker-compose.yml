@@ -19,3 +19,4 @@ networks:
 
 volumes:
   mysql-data:
+    name: mysql-data
