@@ -4,12 +4,9 @@ services:
     container_name: portainer
     hostname: portainer
     restart: unless-stopped
-    # ports:
-    #   - "9000:9000"
-    #   - "9443:9443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./data:/data
+      - portainer-data:/data
     networks:
       - control-plane
 
@@ -24,3 +21,6 @@ services:
 networks:
   control-plane:
     external: true
+
+volumes:
+  portainer-data:

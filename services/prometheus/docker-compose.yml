@@ -5,11 +5,9 @@ services:
     hostname: prometheus
     restart: unless-stopped
     user: "65534"
-    # ports:
-    #   - "9090:9090"
     volumes:
       - ./conf/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./data:/prometheus
+      - prometheus-data:/prometheus
     networks:
       - control-plane
     labels:
@@ -23,3 +21,6 @@ services:
 networks:
   control-plane:
     external: true
+
+volumes:
+  prometheus-data:
