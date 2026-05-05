@@ -1,0 +1,29 @@
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:${KEYCLOAK_TAG}
+    container_name: keycloak
+    hostname: keycloak
+    restart: unless-stopped
+    command: start-dev --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgresql:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_HOSTNAME: keycloak.${APP_DOMAIN}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: "true"
+    networks:
+      - control-plane
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.keycloak.rule=Host(`keycloak.${APP_DOMAIN}`)
+      - traefik.http.routers.keycloak.entrypoints=websecure
+      - traefik.http.routers.keycloak.tls.certresolver=myresolver
+      - traefik.http.services.keycloak.loadbalancer.server.port=8080
+
+networks:
+  control-plane:
+    external: true

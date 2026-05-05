@@ -57,7 +57,7 @@ variables:
     - |
       ssh -p "${SSH_PORT}" "${SSH_USER}@${CONTROLLER}" \
         "bash -se -- '${DEPLOY_DIR}' '${REMOTE_OWNER}' '${CI_COMMIT_BRANCH}' '${DEBUG_DEPLOY_TEMPLATE}'" \
-        < scripts/ci/remote-sync.sh
+        < scripts/remote-sync.sh
 
     - echo "[STEP] Uploading configuration"
     - ssh -p "${SSH_PORT}" "${SSH_USER}@${CONTROLLER}" "mkdir -p ${REMOTE_PATH}"
@@ -68,7 +68,7 @@ variables:
     - |
       ssh -p "${SSH_PORT}" "${SSH_USER}@${CONTROLLER}" \
         "bash -se -- '${REMOTE_PATH}' '${SERVICE_NAME}' '${DEBUG_DEPLOY_TEMPLATE}' '${HEALTHCHECK_CMD:-}'" \
-        < scripts/ci/remote-deploy.sh
+        < scripts/remote-deploy.sh
   after_script:
     - rm -f "services/${SERVICE_NAME}/.env" || true
 
@@ -119,14 +119,14 @@ deploy_pgsql:
       changes:
         - services/pgsql/**
 
-deploy_n8n:
+deploy_keycloak:
   extends: .deploy_template
   variables:
-    SERVICE_NAME: "n8n"
+    SERVICE_NAME: "keycloak"
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
       changes:
-        - services/n8n/**
+        - services/keycloak/**
 
 deploy_grafana:
   extends: .deploy_template
