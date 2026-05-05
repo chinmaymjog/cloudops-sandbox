@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     user: "1000"
     volumes:
-      - ./data:/home/node/.n8n
+      - n8n-data:/home/node/.n8n
     environment:
       - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
       - N8N_HOST=n8n.${APP_DOMAIN}
@@ -37,3 +37,6 @@ services:
 networks:
   control-plane:
     external: true
+
+volumes:
+  n8n-data:

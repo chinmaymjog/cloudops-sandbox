@@ -3,36 +3,21 @@ services:
     image: postgres:${POSTGRES_TAG}
     container_name: postgresql
     hostname: postgresql
-    # user: postgres
     restart: unless-stopped
-    # ports:
-    #   - "5432:5432"
     networks:
       - control-plane
     volumes:
-      - ./data:/var/lib/postgresql
+      - pgsql-data:/var/lib/postgresql
       - ./init-db.d:/docker-entrypoint-initdb.d
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
       N8N_DB_PASSWORD: ${N8N_DB_PASSWORD}
       GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD}
-  # adminer:
-  # image: adminer:${ADMINER_TAG}
-  # container_name: adminer
-  # hostname: adminer
-  # restart: unless-stopped
-  # # ports:
-  # #   - 8080:8080
-  # networks:
-  #   - control-plane
-  # labels:
-  #   - traefik.enable=true
-  #   - traefik.http.routers.adminer.rule=Host(`adminer.${APP_DOMAIN}`)
-  #   - traefik.http.routers.adminer.entrypoints=websecure
-  #   - traefik.http.routers.adminer.tls.certresolver=myresolver
-  #   - traefik.http.services.adminer.loadbalancer.server.port=8080
 
 networks:
   control-plane:
     external: true
+
+volumes:
+  pgsql-data:

@@ -11,8 +11,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./conf:/etc/traefik
-      - ./log:/var/log/traefik
-      - ./certs:/certs
+      - traefik-log:/var/log/traefik
+      - traefik-certs:/certs
     networks:
       - control-plane
 
@@ -33,3 +33,7 @@ services:
 networks:
   control-plane:
     external: true
+
+volumes:
+  traefik-log:
+  traefik-certs:
