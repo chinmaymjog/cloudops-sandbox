@@ -1,39 +1,35 @@
-.vscode
+# IDEs and OS
+.vscode/
+.idea/
 .DS_Store
+Thumbs.db
+
+# Environment and Secrets
 .env
-
-# Ignore all generated stack-level .env files
-stacks/*/.env
 .env-copy
+**/.env
+**/certs/
+**/*.pem
+**/*.crt
+**/*.key
 
-# grafana
-**/stacks/grafana/data
-
-# mysql
-**/mysql/data
-
-# n8n
-**/n8n/data
-
-# pgsql
-**/pgsql/data
-
-# portainer
-**/portainer/data
-
-# prometheus
-**/stacks/prometheus/data
-
-#traefik
-**/traefik/certs
-**/traefik/log
-
-digitalocean
-Notes
-
-.venv/
+# Python
 __pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
 .pytest_cache/
-*.pyc
 *.egg-info/
+
+# Sandbox Data & Persistence
+# Ignore all local data and log directories for all stacks
+**/data/
+**/logs/
+**/log/
+
+# Project Specific
+digitalocean/
+Notes/
 .orchestrator
