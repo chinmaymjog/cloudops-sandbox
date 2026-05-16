@@ -1,7 +1,7 @@
 # Building a Production-Grade Cloud Sandbox on Your Laptop
 ## Beyond Localhost: A Cloud Architect’s Guide
 
-![CloudOps Sandbox Hero](../assets/hero.png)
+![CloudOps Sandbox Hero](https://raw.githubusercontent.com/chinmaymjog/cloudops-sandbox/main/docs/assets/hero.png)
 
 ### Introduction
 As a Cloud Infrastructure Architect, I often face a choice: spend hours (and dollars) spinning up cloud environments for testing, or settle for a "good enough" local setup that lacks the security and routing patterns of a real production environment.
