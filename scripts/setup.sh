@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# DevOps Lab Setup Script
+# CloudOps-Sandbox Setup Script
 # Combines logic from init.sh and bootstrap-vm.sh for local setup on Mac/Linux.
 
 # --- Configuration ---
 NETWORK_NAME="${NETWORK_NAME:-control-plane}"
 # Resolve the project root directory (one level up from scripts/)
 BASE_DIR=$(cd "$(dirname "$0")/.." && pwd)
-SERVICES_DIR="$BASE_DIR/services"
+STACKS_DIR="$BASE_DIR/stacks"
 ROOT_ENV="$BASE_DIR/.env"
 
 log() { printf '🚀 %s\n' "$*"; }
@@ -22,7 +22,7 @@ case "${OS}" in
     *)          error "Unsupported OS: ${OS}";;
 esac
 
-log "Initializing DevOps Lab on ${PLATFORM}..."
+log "Initializing CloudOps-Sandbox on ${PLATFORM}..."
 
 # --- 2. Dependency Check ---
 check_dependency() {
@@ -55,13 +55,13 @@ else
     log "No root .env found; relying on system/CI environment variables."
 fi
 
-log "Generating service-level environment files..."
+log "Generating stack-level environment files..."
 count=0
-for service in "$SERVICES_DIR"/*; do
-    if [ -d "$service" ]; then
-        service_name=$(basename "$service")
-        env_template="$service/.env.template"
-        env_file="$service/.env"
+for stack in "$STACKS_DIR"/*; do
+    if [ -d "$stack" ]; then
+        stack_name=$(basename "$stack")
+        env_template="$stack/.env.template"
+        env_file="$stack/.env"
 
         if [ -f "$env_template" ]; then
             # Using subshell to source and envsubst to avoid polluting current shell
@@ -80,7 +80,7 @@ for service in "$SERVICES_DIR"/*; do
                     envsubst "$VARS_TO_SUBST" < "$env_template" > "$env_file"
                 fi
             )
-            log "✅ $service_name: Created/Updated .env"
+            log "✅ $stack_name: Created/Updated .env"
             ((count++))
         fi
     fi
@@ -97,4 +97,4 @@ fi
 
 echo ""
 log "Setup complete! Happy Coding! 🐳"
-echo "Next steps: docker compose -f services/traefik/docker-compose.yml up -d"
+echo "Next steps: docker compose -f stacks/traefik/docker-compose.yml up -d"
