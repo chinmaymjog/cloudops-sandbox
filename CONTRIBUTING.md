@@ -12,6 +12,25 @@ Thank you for contributing to the **CloudOps-Sandbox**! This guide ensures that 
     *   [ ] Verify Traefik routing: Can you reach `https://<tool>.<domain>`?
     *   [ ] Check logs: `docker compose -f stacks/<tool>/docker-compose.yml logs -f`.
 
+## 🏗️ Adding a New Stack
+
+When adding a new tool to the sandbox, follow these steps to maintain architectural consistency:
+
+1.  **Create Stack Directory**: Create `stacks/<name>` with a `docker-compose.yml` and `.env.template`.
+2.  **Define Environment Variables**:
+    *   Add global variables (like image tags) to the root `.env.template`.
+    *   Add stack-specific variables to `stacks/<name>/.env.template`.
+3.  **Database Integration**:
+    *   **PostgreSQL**: Add a `create_user_and_database` call to `stacks/pgsql/init-db.d/init-databases.sh`.
+    *   **MySQL**: Add a corresponding SQL or shell command to `stacks/mysql/init-db.d/init-databases.sh`.
+    *   Ensure passwords are added to the root `.env.template`.
+4.  **Ingress (Traefik)**:
+    *   Use labels to define routing (e.g., `traefik.http.routers.<name>.rule=Host(\`<name>.\${APP_DOMAIN}\`)`).
+    *   Ensure `traefik.enable=true` and `traefik.http.routers.<name>.tls=true`.
+5.  **Sync Databases**: If the lab is already running, run `make sync-dbs` to create the new database and user without restarting the DB engine.
+6.  **Persistence**: Always use **Named Volumes** for data persistence.
+7.  **Test**: Run `make setup` and `make up` to verify the new stack.
+
 ## 🧪 Testing Checklist
 
 Before submitting a PR or deploying to production, verify the following:

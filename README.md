@@ -2,6 +2,9 @@
 
 A modular, automated infrastructure sandbox for testing cloud-native stacks, observability, and automation tools on your laptop or a remote VM.
 
+> [!TIP]
+> Read the [Detailed Architecture & Design Guide](docs/posts/cloudops-sandbox-article.md) to understand how this lab mimics a production cloud environment.
+
 ## 🚀 Overview
 
 This lab provides a "Sandboxed" environment that mimics a production cloud setup. It allows for the rapid deployment of stateful tools and management stacks using Docker and Traefik as a unified entry point.
@@ -66,6 +69,13 @@ Start the core infrastructure and all stacks:
 ```bash
 make up
 ```
+
+### 4. Database Syncing (Optional)
+If you add a new app that needs a database while the lab is already running, run:
+```bash
+make sync-dbs
+```
+This safely provisions new databases and users without restarting the DB engine.
 
 ---
 
