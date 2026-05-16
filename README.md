@@ -1,9 +1,47 @@
 # ☁️ CloudOps-Sandbox
+## A Production-Grade Local Cloud Architecture
+
+![CloudOps Sandbox Hero](docs/assets/hero.png)
 
 A modular, automated infrastructure sandbox for testing cloud-native stacks, observability, and automation tools on your laptop or a remote VM.
 
 > [!TIP]
 > Read the [Detailed Architecture & Design Guide](docs/posts/cloudops-sandbox-article.md) to understand how this lab mimics a production cloud environment.
+
+## 🏗️ Architecture: The "Local Cloud" Design
+
+Unlike standard local labs, **CloudOps-Sandbox** is built with a platform engineering mindset. It separates ingress, control-plane logic, and modular application stacks.
+
+```mermaid
+graph TD
+    User([User]) -->|HTTPS / *.nip.io| Traefik[Traefik Ingress Gateway]
+    
+    subgraph "Control Plane Network"
+        Traefik
+        DNS[Cloudflare / Let's Encrypt]
+    end
+
+    subgraph "Modular Stacks"
+        App1[Keycloak Stack]
+        App2[n8n Stack]
+        App3[Monitoring Stack]
+    end
+
+    subgraph "Persistence Layer"
+        DB[(Shared Postgres/Redis)]
+        Vol[(Docker Named Volumes)]
+    end
+
+    Traefik --> App1
+    Traefik --> App2
+    Traefik --> App3
+    
+    App1 --> DB
+    App2 --> DB
+    
+    App1 --> Vol
+    App2 --> Vol
+```
 
 ## 🚀 Overview
 
@@ -120,5 +158,13 @@ For CI/CD or automated syncing from a local machine, you can use the provided he
 *   `scripts/remote-sync.sh`: Syncs local changes to a remote path via Git.
 *   `scripts/remote-deploy.sh`: Remotely triggers `make setup` and `docker compose` actions.
 
+## 📚 Content & Community
+
+This project is part of a larger effort to share high-quality DevOps and Cloud Architecture patterns. 
+
+- **Technical Article**: For a deep dive into the "why" behind this architecture, check out the [CloudOps-Sandbox Design Guide](docs/posts/cloudops-sandbox-article.md).
+- **Publishing Engine**: I use my standalone [Content-Ops](https://github.com/chinmaymjog/content-ops) tool to automate the transition of these docs to Medium and LinkedIn.
+
 ---
-*Developed by Chinmay Jog - Showcasing DevOps, Self-Hosting & Observability Skills.*
+*Maintained by [Chinmay Jog](https://github.com/chinmaymjog)*
+DevOps, Self-Hosting & Observability Skills.
