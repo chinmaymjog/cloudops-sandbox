@@ -1,0 +1,18 @@
+services:
+  adminer:
+    image: adminer:${ADMINER_TAG}
+    container_name: adminer
+    restart: unless-stopped
+    networks:
+      - control-plane
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.adminer.rule=Host(`adminer.${APP_DOMAIN}`)
+      - traefik.http.routers.adminer.entrypoints=websecure
+      - traefik.http.routers.adminer.tls=true
+      - traefik.http.services.adminer.loadbalancer.server.port=8080
+      - traefik.http.routers.adminer.middlewares=auth
+
+networks:
+  control-plane:
+    external: true
