@@ -1,0 +1,21 @@
+services:
+  phpmyadmin:
+    image: phpmyadmin:${PHPMYADMIN_TAG}
+    container_name: phpmyadmin
+    restart: unless-stopped
+    networks:
+      - control-plane
+    environment:
+      - PMA_HOST=mysql
+      - PMA_PORT=3306
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.phpmyadmin.rule=Host(`phpmyadmin.${APP_DOMAIN}`)
+      - traefik.http.routers.phpmyadmin.entrypoints=websecure
+      - traefik.http.routers.phpmyadmin.tls=true
+      - traefik.http.services.phpmyadmin.loadbalancer.server.port=80
+      - traefik.http.routers.phpmyadmin.middlewares=auth
+
+networks:
+  control-plane:
+    external: true

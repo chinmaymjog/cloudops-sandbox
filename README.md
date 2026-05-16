@@ -66,7 +66,7 @@ If you don't have a domain, you can use **[nip.io](https://nip.io)**:
 ### System Requirements
 *   **Operating System**: macOS or Linux.
 *   **Docker**: Docker Desktop (Mac) or Docker Engine (Linux).
-*   **Tools**: `make`, `envsubst` (via `gettext`).
+*   **Tools**: `make`, `envsubst` (via `gettext` package on Linux).
 
 ---
 
@@ -81,7 +81,7 @@ The lab is organized into modular stacks:
 | **Automation** | n8n | Low-code workflow automation |
 | **Databases** | PostgreSQL, MySQL | Stateful data persistence |
 | **Identity** | Keycloak | Identity and Access Management (OIDC/SAML) |
-| **Management** | Portainer, Adminer | Container and DB management UIs |
+| **Management** | Portainer, Adminer, phpMyAdmin | Container and DB management UIs |
 
 ---
 
@@ -143,7 +143,7 @@ The sandbox is designed to be environment-agnostic. Whether you are running on a
 | **Local Development** | `127.0.0.1.nip.io` | Automatic (via nip.io) |
 | **Remote VM (Public IP)** | `<VM_IP>.nip.io` | Automatic (via nip.io) |
 | **Public Domain** | `lab.yourdomain.com` | DNS Record (A or CNAME) |
-| **Offline / Internal** | `cloudops.local` | `/etc/hosts` entry |
+| **Offline / Internal** | `lab.local` | `/etc/hosts` entry |
 
 ### 2. Universal Deployment Flow
 To deploy on **any** machine (Local or Remote):
@@ -165,4 +165,3 @@ This project is part of a larger effort to share high-quality DevOps and Cloud A
 
 ---
 *Maintained by [Chinmay Jog](https://github.com/chinmaymjog)*
-DevOps, Self-Hosting & Observability Skills.
