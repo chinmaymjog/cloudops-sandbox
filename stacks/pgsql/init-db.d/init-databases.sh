@@ -9,7 +9,8 @@ create_user_and_database() {
 	echo "  Ensuring database '$database' and user '$user' exist..."
 	
 	# Create user if it doesn't exist
-	psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "postgres" <<-EOSQL
+	export PGPASSWORD="${POSTGRES_PASSWORD}"
+	psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER:-postgres}" --dbname "postgres" <<-EOSQL
 		DO \$$
 		BEGIN
 			IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '$user') THEN
@@ -20,7 +21,7 @@ create_user_and_database() {
 EOSQL
 
 	# Create database if it doesn't exist
-	psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "postgres" <<-EOSQL
+	psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER:-postgres}" --dbname "postgres" <<-EOSQL
 		SELECT 'CREATE DATABASE "$database" OWNER "$user"'
 		WHERE NOT EXISTS (SELECT FROM pg_catalog.pg_database WHERE datname = '$database')\gexec
 		GRANT ALL PRIVILEGES ON DATABASE "$database" TO "$user";

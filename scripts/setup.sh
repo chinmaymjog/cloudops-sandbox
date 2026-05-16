@@ -81,7 +81,7 @@ for stack in "$STACKS_DIR"/*; do
                 fi
             )
             log "✅ $stack_name: Created/Updated .env"
-            ((count++))
+            count=$((count + 1))
         fi
     fi
 done

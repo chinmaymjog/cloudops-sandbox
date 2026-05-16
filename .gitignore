@@ -2,12 +2,12 @@
 .DS_Store
 .env
 
-# Ignore all generated service-level .env files
-services/*/.env
+# Ignore all generated stack-level .env files
+stacks/*/.env
 .env-copy
 
 # grafana
-**/services/grafana/data
+**/stacks/grafana/data
 
 # mysql
 **/mysql/data
@@ -22,7 +22,7 @@ services/*/.env
 **/portainer/data
 
 # prometheus
-**/services/prometheus/data
+**/stacks/prometheus/data
 
 #traefik
 **/traefik/certs
