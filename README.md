@@ -1,8 +1,6 @@
 # ☁️ CloudOps-Sandbox
 ## A Production-Grade Local Cloud Architecture
 
-![CloudOps Sandbox Hero](docs/assets/hero.png)
-
 A modular, automated infrastructure sandbox for testing cloud-native stacks, observability, and automation tools on your laptop or a remote VM.
 
 > [!TIP]
