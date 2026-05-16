@@ -1,6 +1,7 @@
 # Building a Production-Grade Cloud Sandbox on Your Laptop
-
 ## Beyond Localhost: A Cloud Architect’s Guide
+
+![CloudOps Sandbox Hero](../assets/hero.png)
 
 ### Introduction
 As a Cloud Infrastructure Architect, I often face a choice: spend hours (and dollars) spinning up cloud environments for testing, or settle for a "good enough" local setup that lacks the security and routing patterns of a real production environment.
@@ -14,6 +15,37 @@ This project, **CloudOps-Sandbox**, is the framework I built to solve this.
 ### The Architecture: A "Local Cloud" Design
 Most local labs are just a collection of Docker Compose files. I treated this as a platform engineering problem.
 
+```mermaid
+graph TD
+    User([User]) -->|HTTPS / *.nip.io| Traefik[Traefik Ingress Gateway]
+    
+    subgraph "Control Plane Network"
+        Traefik
+        DNS[Cloudflare / Let's Encrypt]
+    end
+
+    subgraph "Modular Stacks"
+        App1[Keycloak Stack]
+        App2[n8n Stack]
+        App3[Monitoring Stack]
+    end
+
+    subgraph "Persistence Layer"
+        DB[(Shared Postgres/Redis)]
+        Vol[(Docker Named Volumes)]
+    end
+
+    Traefik --> App1
+    Traefik --> App2
+    Traefik --> App3
+    
+    App1 --> DB
+    App2 --> DB
+    
+    App1 --> Vol
+    App2 --> Vol
+```
+
 #### 🏗️ Modular "Stacks"
 Instead of one massive, monolithic compose file, each tool (Keycloak, n8n, Prometheus) is its own **Stack**. They are isolated but connected via a unified `control-plane` network. This makes it trivial to add, remove, or swap tools without breaking the rest of the lab.
 
@@ -25,7 +57,7 @@ Accessing services via `localhost:8080` is a friction point. I integrated **Trae
 #### 🐘 Idempotent Database Bootstrapping
 One of the hardest parts of a local lab is managing database credentials and users. I developed a **`sync-dbs`** workflow:
 - **On-Initial-Boot**: Scripts in `init-db.d` provision everything automatically.
-- **On-Demand**: A simple `make sync-dbs` command allows you to add a new app and its database to a *running* lab without restarting the database engine or wiping volumes. It's safe, idempotent, and fast.
+- **On-Demand**: A simple `make sync-dbs` command allows you to add a new app and its database to a *running* lab without restarting the database engine or wiping volumes.
 
 ---
 
@@ -41,6 +73,12 @@ One of the hardest parts of a local lab is managing database credentials and use
 
 ### Why This Matters
 For a Cloud Architect, your local lab is your playground and your proof of concept. Building it with these production patterns—security, automation, and modularity—doesn't just make you faster; it demonstrates the same architectural thinking required for enterprise-scale cloud environments.
+
+---
+
+### Check out the Project
+The full source code and setup instructions are available on GitHub:
+👉 **[CloudOps-Sandbox on GitHub](https://github.com/chinmaymjog/cloudops-sandbox)**
 
 ---
 *About the Author: Chinmay Jog is a Cloud Infrastructure Architect and DevOps Engineer. He specializes in building automated, secure, and developer-friendly infrastructure solutions.*
