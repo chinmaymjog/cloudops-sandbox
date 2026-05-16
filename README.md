@@ -151,10 +151,11 @@ To deploy on **any** machine (Local or Remote):
 2.  **Configure**: Create root `.env` and set `APP_DOMAIN`.
 3.  **Launch**: Run `make setup && make up`.
 
-### 3. Advanced Remote Management
-For CI/CD or automated syncing from a local machine, you can use the provided helper scripts:
-*   `scripts/remote-sync.sh`: Syncs local changes to a remote path via Git.
-*   `scripts/remote-deploy.sh`: Remotely triggers `make setup` and `docker compose` actions.
+### 3. Remote VM Deployment
+The sandbox is designed to be environment-agnostic. To deploy on a remote VM:
+1.  **Clone**: `git clone <repo_url>`
+2.  **Configure**: Create root `.env` and set `APP_DOMAIN` to your VM's IP (or use `nip.io`).
+3.  **Launch**: Run `make setup && make up`.
 
 ## 📚 Content & Community
 
