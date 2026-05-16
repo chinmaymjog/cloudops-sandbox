@@ -4,7 +4,7 @@
 A modular, automated infrastructure sandbox for testing cloud-native stacks, observability, and automation tools on your laptop or a remote VM.
 
 > [!TIP]
-> Read the [Detailed Architecture & Design Guide](docs/posts/cloudops-sandbox-article.md) to understand how this lab mimics a production cloud environment.
+> This lab mimics a production cloud environment with modular stacks and unified ingress.
 
 ## 🏗️ Architecture: The "Local Cloud" Design
 
@@ -161,7 +161,7 @@ The sandbox is designed to be environment-agnostic. To deploy on a remote VM:
 
 This project is part of a larger effort to share high-quality DevOps and Cloud Architecture patterns. 
 
-- **Technical Article**: For a deep dive into the "why" behind this architecture, check out the [CloudOps-Sandbox Design Guide](docs/posts/cloudops-sandbox-article.md).
+- **Technical Article**: Deep dive into the "why" behind this architecture (available on Medium/LinkedIn).
 - **Publishing Engine**: I use my standalone [Content-Ops](https://github.com/chinmaymjog/content-ops) tool to automate the transition of these docs to Medium and LinkedIn.
 
 ---
