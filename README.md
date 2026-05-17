@@ -157,12 +157,5 @@ The sandbox is designed to be environment-agnostic. To deploy on a remote VM:
 2.  **Configure**: Create root `.env` and set `APP_DOMAIN` to your VM's IP (or use `nip.io`).
 3.  **Launch**: Run `make setup && make up`.
 
-## 📚 Content & Community
-
-This project is part of a larger effort to share high-quality DevOps and Cloud Architecture patterns. 
-
-- **Technical Article**: Deep dive into the "why" behind this architecture (available on Medium/LinkedIn).
-- **Publishing Engine**: I use my standalone [Content-Ops](https://github.com/chinmaymjog/content-ops) tool to automate the transition of these docs to Medium and LinkedIn.
-
 ---
-*Maintained by [Chinmay Jog](https://github.com/chinmaymjog)*
+*Maintained by [Chinmay Jog](https://github.com/chinmaymjog) | 📖 [Read my articles on Medium](https://medium.com/@chinmaymjog)*
