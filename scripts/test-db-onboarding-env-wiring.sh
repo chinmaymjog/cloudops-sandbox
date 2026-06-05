@@ -8,7 +8,7 @@ set -Eeuo pipefail
 TEST_NAME="db-onboarding-env-wiring"
 CONTAINER="${TEST_NAME}-$$"
 IMAGE="postgres:16"
-APP_PASSWORD="demo_app_secret"
+APP_PASSWORD="test_pw_$(date +%s)_$$"
 
 cleanup() {
   docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
