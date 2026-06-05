@@ -72,7 +72,7 @@ for stack in "$STACKS_DIR"/*; do
                 set +a
                 
                 # Extract defined variables from template to prevent envsubst from mangling other '$' chars
-                VARS_TO_SUBST=$(grep -oE '\$\{?[A-Z0-9_]+\}?' "$env_template" | sort -u | tr -d '${}' | sed 's/^/$/' | tr '\n' ',' | sed 's/,$//')
+                VARS_TO_SUBST=$(grep -oE '\$\{?[A-Z0-9_]+\}?' "$env_template" 2>/dev/null | sort -u | tr -d '${}' | sed 's/^/$/' | tr '\n' ',' | sed 's/,$//' || true)
                 
                 if [ -z "$VARS_TO_SUBST" ]; then
                     cp "$env_template" "$env_file"
