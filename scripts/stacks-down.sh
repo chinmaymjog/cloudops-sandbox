@@ -6,8 +6,16 @@ set -Eeuo pipefail
 
 BASE_DIR=$(cd "$(dirname "$0")/.." && pwd)
 STACKS_DIR="$BASE_DIR/stacks"
+ROOT_ENV="$BASE_DIR/.env"
 
 log() { printf '🛑 %s\n' "$*"; }
+
+if [[ -f "$ROOT_ENV" ]]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$ROOT_ENV"
+    set +a
+fi
 
 log "Stopping all stacks..."
 for stack_compose in "$STACKS_DIR"/*/docker-compose.yml; do
