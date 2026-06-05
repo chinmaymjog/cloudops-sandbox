@@ -45,23 +45,7 @@ graph TD
 
 This lab provides a "Sandboxed" environment that mimics a production cloud setup. It allows for the rapid deployment of stateful tools and management stacks using Docker and Traefik as a unified entry point.
 
----
-
 ## 📋 Prerequisites
-
-### Domain Setup (Choose One)
-
-#### Option A: Public Domain (Recommended)
-If you have a public domain (e.g., managed via Cloudflare):
-1.  Point a wildcard record (e.g., `*.lab.yourdomain.com`) to `127.0.0.1` (for local) or your **Remote VM Public IP**.
-2.  Create a Cloudflare API Token with `DNS:Edit` permissions.
-3.  This allows Traefik to use DNS challenges for real wildcard SSL certificates.
-
-#### Option B: No Public Domain (The "Zero-Config" Way)
-If you don't have a domain, you can use **[nip.io](https://nip.io)**:
-1.  Set `APP_DOMAIN` in your `.env` to `127.0.0.1.nip.io`.
-2.  Access stacks at `https://grafana.127.0.0.1.nip.io`.
-3.  *Note: Traefik will use self-signed certificates in this mode unless configured otherwise.*
 
 ### System Requirements
 *   **Operating System**: macOS or Linux.
@@ -88,26 +72,94 @@ The lab is organized into modular stacks:
 ## 🛠️ Quick Start
 
 ### 1. Initialize Environment
-Copy the global template and configure your domain:
+Copy the global template:
 ```bash
 cp .env.template .env
-# Edit .env with your domain and CF_DNS_API_TOKEN
 ```
 
-### 2. Setup Infrastructure
-Initialize the Docker network and generate stack-specific `.env` files:
+### 2. Choose Setup Mode
+
+#### Mode A (Recommended): Local Laptop with nip.io
+Set the minimum required values in `.env`:
+- `APP_DOMAIN=127.0.0.1.nip.io`
+- `BASIC_AUTH`
+- `POSTGRES_PASSWORD`
+- `N8N_DB_PASSWORD`
+- `GRAFANA_DB_PASSWORD`
+- `MYSQL_ROOT_PASSWORD`
+- `N8N_ENCRYPTION_KEY`
+- `KEYCLOAK_ADMIN`
+- `KEYCLOAK_ADMIN_PASSWORD`
+- `KEYCLOAK_DB_PASSWORD`
+
+Generate `BASIC_AUTH` (example):
+```bash
+echo $(htpasswd -nb user password) | sed -e s/\$/\$\$/g
+```
+
+Expected access examples:
+- `https://grafana.127.0.0.1.nip.io`
+- `https://keycloak.127.0.0.1.nip.io`
+- `https://n8n.127.0.0.1.nip.io`
+
+Note: nip.io mode works with default/self-signed cert behavior, so browser certificate warnings are expected.
+
+#### Mode B: Remote VM with nip.io
+Set in `.env`:
+- `APP_DOMAIN=<VM_PUBLIC_IP>.nip.io`
+- Same secret values as Mode A
+
+VM preflight:
+1. Open inbound ports `80` and `443` on the VM firewall/security group.
+2. Ensure Docker is running.
+
+Expected access examples:
+- `https://grafana.<VM_PUBLIC_IP>.nip.io`
+- `https://keycloak.<VM_PUBLIC_IP>.nip.io`
+- `https://n8n.<VM_PUBLIC_IP>.nip.io`
+
+#### Mode C (Optional Advanced): Public Domain with Cloudflare
+Use this mode only if you want DNS-challenge based certificates.
+
+Set in `.env`:
+- `APP_DOMAIN=lab.yourdomain.com`
+- `CF_API_EMAIL` (uncomment in `.env.template`)
+- `CF_DNS_API_TOKEN` (uncomment in `.env.template`)
+- Same secret values as Mode A
+
+DNS preflight:
+1. Create wildcard DNS record `*.lab.yourdomain.com` to `127.0.0.1` (local) or VM public IP (remote).
+2. Token permissions should include DNS edit capability for the zone.
+
+### 3. Setup Infrastructure
+Generate stack env files and network:
 ```bash
 make setup
 ```
 
-### 3. Launch Stack
-Start the core infrastructure and all stacks:
+### 4. Launch Stack
+Start the full lab:
 ```bash
 make up
 ```
 
-### 4. Database Syncing (Optional)
-If you add a new app that needs a database while the lab is already running, run:
+### 5. Verify Health
+```bash
+make status
+docker ps
+```
+
+### 6. First Login (Recommended)
+Start with Traefik dashboard:
+- `https://traefik.<APP_DOMAIN>`
+
+Then verify core apps:
+- `https://grafana.<APP_DOMAIN>`
+- `https://keycloak.<APP_DOMAIN>`
+- `https://n8n.<APP_DOMAIN>`
+
+### 7. Database Syncing (Optional)
+If you add a new DB-backed app while the lab is already running, run:
 ```bash
 make sync-dbs
 ```
@@ -115,47 +167,26 @@ This safely provisions new databases and users without restarting the DB engine.
 
 ---
 
-## ➕ How to Add a New Stack
+## 🔌 Optional Integrations
 
-Adding a new tool to the lab is standardized:
-
-1.  **Create Directory**: `mkdir -p stacks/my-new-tool`
-2.  **Add Compose**: Create `stacks/my-new-tool/docker-compose.yml`. Ensure it uses the `control-plane` network.
-3.  **Define Env**: Create `stacks/my-new-tool/.env.template` with any required variables.
-4.  **Add Labels**: Add Traefik labels for routing:
-    ```yaml
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.mytool.rule=Host(`mytool.${APP_DOMAIN}`)"
-    ```
-5.  **Re-run Setup**: Run `make setup` to generate the new `.env` file, then `make up`.
+WUD Slack notifications are optional.
+These variables are commented out in `.env.template` by default.
+Only uncomment/configure them if you want Slack alerts for image updates:
+- `WUD_TRIGGER_SLACK_SUPPORT_TOKEN`
+- `WUD_TRIGGER_SLACK_SUPPORT_CHANNEL`
+- `WUD_TRIGGER_SLACK_SUPPORT_THRESHOLD`
 
 ---
 
-## 🧪 Testing & Validation
+## 🧰 Helpful Commands
 
-The sandbox is designed to be environment-agnostic. Whether you are running on a local laptop or a remote VM, the workflow remains identical.
-
-### 1. Domain & Access Strategy
-
-| Scenario | Recommended APP_DOMAIN | Access Method |
-| :--- | :--- | :--- |
-| **Local Development** | `127.0.0.1.nip.io` | Automatic (via nip.io) |
-| **Remote VM (Public IP)** | `<VM_IP>.nip.io` | Automatic (via nip.io) |
-| **Public Domain** | `lab.yourdomain.com` | DNS Record (A or CNAME) |
-| **Offline / Internal** | `lab.local` | `/etc/hosts` entry |
-
-### 2. Universal Deployment Flow
-To deploy on **any** machine (Local or Remote):
-1.  **Clone**: `git clone <repo_url>`
-2.  **Configure**: Create root `.env` and set `APP_DOMAIN`.
-3.  **Launch**: Run `make setup && make up`.
-
-### 3. Remote VM Deployment
-The sandbox is designed to be environment-agnostic. To deploy on a remote VM:
-1.  **Clone**: `git clone <repo_url>`
-2.  **Configure**: Create root `.env` and set `APP_DOMAIN` to your VM's IP (or use `nip.io`).
-3.  **Launch**: Run `make setup && make up`.
+```bash
+make setup      # regenerate stack env files
+make up         # start all stacks
+make down       # stop all stacks
+make status     # container status snapshot
+make sync-dbs   # sync postgres/mysql users and databases
+```
 
 ---
 *Maintained by [Chinmay Jog](https://github.com/chinmaymjog) | 📖 [Read my articles on Medium](https://medium.com/@chinmaymjog)*
