@@ -11,6 +11,7 @@ create_user_and_database() {
 	mysql -u root -p"${MYSQL_ROOT_PASSWORD}" <<-EOSQL
 		CREATE DATABASE IF NOT EXISTS \`$database\`;
 		CREATE USER IF NOT EXISTS '$user'@'%' IDENTIFIED BY '$password';
+		ALTER USER '$user'@'%' IDENTIFIED BY '$password';
 		GRANT ALL PRIVILEGES ON \`$database\`.* TO '$user'@'%';
 		FLUSH PRIVILEGES;
 EOSQL
