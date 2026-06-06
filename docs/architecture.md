@@ -1,7 +1,5 @@
 # Architecture and Decisions
 
-Template note: remove or replace all "Example" and "Mini example" content after your first real draft.
-
 ## Document Control
 
 - Project: CloudOps-Sandbox
