@@ -10,6 +10,8 @@ I wanted something better. I wanted a local lab that felt like a cloud providerâ
 
 This project, **CloudOps-Sandbox**, is the framework I built to solve this.
 
+The current repo also documents a repeatable end-user flow for local laptop or remote VM setup, plus a generic onboarding pattern for adding a new stack or DB-backed app without reworking the whole lab.
+
 ---
 
 ### The Architecture: A "Local Cloud" Design
@@ -31,7 +33,7 @@ graph TD
     end
 
     subgraph "Persistence Layer"
-        DB[(Shared Postgres/Redis)]
+        DB[(Shared PostgreSQL/MySQL)]
         Vol[(Docker Named Volumes)]
     end
 
@@ -59,6 +61,8 @@ One of the hardest parts of a local lab is managing database credentials and use
 - **On-Initial-Boot**: Scripts in `init-db.d` provision everything automatically.
 - **On-Demand**: A simple `make sync-dbs` command allows you to add a new app and its database to a *running* lab without restarting the database engine or wiping volumes.
 
+That onboarding path is now part of the documented repository workflow, so adding a new app follows the same pattern each time instead of depending on tribal knowledge.
+
 ---
 
 ### Key Technical Features
@@ -79,6 +83,8 @@ For a Cloud Architect, your local lab is your playground and your proof of conce
 ### Check out the Project
 The full source code and setup instructions are available on GitHub:
 ðŸ‘‰ **[CloudOps-Sandbox on GitHub](https://github.com/chinmaymjog/cloudops-sandbox)**
+
+Start with the README for the end-user flow, then use the docs set for architecture and tracked work.
 
 ---
 *About the Author: Chinmay Jog is a Cloud Infrastructure Architect and DevOps Engineer. He specializes in building automated, secure, and developer-friendly infrastructure solutions.*
