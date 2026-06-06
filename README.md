@@ -165,6 +165,122 @@ make sync-dbs
 ```
 This safely provisions new databases and users without restarting the DB engine.
 
+### 8. Onboard a New Stack/App
+
+Use this flow for any new stack under `stacks/<app-name>/`.
+
+#### 8.1 Create stack files
+
+Create a new folder and add these templates:
+
+`stacks/<app-name>/.env.template`
+```env
+# Example app runtime config
+APP_TAG=${APP_TAG}
+APP_DOMAIN=${APP_DOMAIN}
+APP_DB_PASSWORD=${APP_DB_PASSWORD}
+```
+
+`stacks/<app-name>/docker-compose.yml`
+```yaml
+services:
+    <app-name>:
+        image: <image-repo>:${APP_TAG}
+        container_name: <app-name>
+        restart: unless-stopped
+        env_file:
+            - .env
+        environment:
+            APP_DOMAIN: ${APP_DOMAIN}
+            APP_DB_PASSWORD: ${APP_DB_PASSWORD}
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.<app-name>.rule=Host(`<app-name>.${APP_DOMAIN}`)"
+            - "traefik.http.routers.<app-name>.entrypoints=websecure"
+            - "traefik.http.routers.<app-name>.tls=true"
+            - "traefik.http.services.<app-name>.loadbalancer.server.port=80"
+        networks:
+            - control-plane
+
+networks:
+    control-plane:
+        external: true
+```
+
+#### 8.2 Add root variables
+
+In root `.env`, add only variables your new stack needs, for example:
+
+```env
+APP_TAG=latest
+APP_DB_PASSWORD=<strong-password>
+```
+
+#### 8.3 Regenerate stack env files and start app
+
+Any stack with `docker-compose.yml` is automatically picked up by startup scripts.
+
+```bash
+make setup
+docker compose -f stacks/<app-name>/docker-compose.yml up -d
+```
+
+Or launch all stacks:
+
+```bash
+make up
+```
+
+#### 8.4 Verify app
+
+```bash
+docker ps --format '{{.Names}}\t{{.Status}}' | grep <app-name>
+docker logs --tail 100 <app-name>
+```
+
+If you added Traefik labels, verify:
+
+- `https://<app-name>.<APP_DOMAIN>`
+
+#### 8.5 DB-backed app extension (PostgreSQL/MySQL)
+
+If the app needs a new DB/user, wire the password through DB runtime and init script.
+
+PostgreSQL:
+
+1. Add password key in root `.env` (example: `DEMO_DB_PASSWORD=...`).
+2. Add `DEMO_DB_PASSWORD=$DEMO_DB_PASSWORD` to `stacks/pgsql/.env.template`.
+3. Add `DEMO_DB_PASSWORD: ${DEMO_DB_PASSWORD}` to `stacks/pgsql/docker-compose.yml` under postgres `environment`.
+4. Add provisioning line in `stacks/pgsql/init-db.d/init-databases.sh`:
+     - `create_user_and_database "demo" "demo" "${DEMO_DB_PASSWORD}"`
+5. Apply without resetting DB volumes:
+
+```bash
+make setup
+make sync-dbs
+```
+
+6. Validate:
+
+```bash
+docker exec -i postgresql psql -U postgres -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='demo';"
+docker exec -i postgresql psql -U postgres -d postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='demo';"
+```
+
+MySQL follows the same pattern with:
+
+- `stacks/mysql/.env.template`
+- `stacks/mysql/docker-compose.yml`
+- `stacks/mysql/init-db.d/init-databases.sh`
+
+Recommended DB onboarding check:
+
+```bash
+make test-db-onboarding
+```
+
+This confirms password vars are present in DB runtime/sync context.
+
 ---
 
 ## 🔌 Optional Integrations
