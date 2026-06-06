@@ -1,35 +1,65 @@
-# IDEs and OS
-.vscode/
-.idea/
+# OS generated files
 .DS_Store
 Thumbs.db
 
-# Environment and Secrets
+# Editor and IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+logs/
+**/logs/
+**/log/
+
+# Environment and secrets
 .env
+.env.*
+!.env.example
 .env-copy
 **/.env
+.env.backup.*
+
+# Certificates and keys
 **/certs/
 **/*.pem
 **/*.crt
 **/*.key
+
+# Build and test artifacts
+dist/
+build/
+coverage/
+.cache/
+.pytest_cache/
 
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 .venv/
-env/
 venv/
-.pytest_cache/
+env/
 *.egg-info/
 
-# Sandbox Data & Persistence
-# Ignore all local data and log directories for all stacks
-**/data/
-**/logs/
-**/log/
+# Node
+node_modules/
 
-# Project Specific
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.lock.hcl
+
+# Sandbox data and persistence
+**/data/
+
+# Project specific
 digitalocean/
 Notes/
 .orchestrator
