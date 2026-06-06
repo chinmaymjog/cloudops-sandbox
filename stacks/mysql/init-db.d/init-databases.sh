@@ -18,8 +18,6 @@ EOSQL
 }
 
 echo "🚀 Starting MySQL database initialization..."
-
-# Add future databases here
-# create_user_and_database "example_db" "example_user" "example_password"
+# Add app-specific MySQL databases and users here when needed.
 
 echo "✅ MySQL database initialization complete!"
