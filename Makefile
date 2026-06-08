@@ -22,11 +22,7 @@ status:
 	@docker ps --filter name=traefik --filter name=postgresql --filter name=mysql --filter name=n8n --filter name=grafana
 
 sync-dbs:
-	@echo "🚀 Syncing PostgreSQL databases..."
-	@docker exec -i postgresql bash /docker-entrypoint-initdb.d/init-databases.sh
-	@echo "🚀 Syncing MySQL databases..."
-	@docker exec -i mysql bash /docker-entrypoint-initdb.d/init-databases.sh
-	@echo "✅ Database sync complete!"
+	@bash scripts/sync-dbs.sh
 
 test-db-onboarding:
 	@bash scripts/test-db-onboarding-env-wiring.sh
