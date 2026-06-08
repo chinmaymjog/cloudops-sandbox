@@ -61,7 +61,7 @@ The lab is organized into modular stacks:
 
 | Category | Tools | Description |
 | :--- | :--- | :--- |
-| **Edge & Proxy** | Traefik | Wildcard SSL, Basic Auth, and Auto-Discovery |
+| **Edge & Proxy** | Traefik | Wildcard SSL and Auto-Discovery |
 | **Observability** | Prometheus, Grafana, WUD | Metrics, Dashboards, and Update Notifications |
 | **Automation** | n8n | Low-code workflow automation |
 | **Databases** | PostgreSQL, MySQL | Stateful data persistence |
@@ -73,13 +73,14 @@ The lab is organized into modular stacks:
 ## 🛠️ Quick Start
 
 ### 1. Get The Code
-Clone the repository locally:
+Clone the repository locally with HTTPS:
 ```bash
-git clone git@github.com:chinmaymjog/cloudops-sandbox.git
+git clone https://github.com/chinmayjog/cloudops-sandbox.git
 cd cloudops-sandbox
 ```
 
 If you plan to customize the lab and keep your own changes, fork first and clone your fork instead.
+If you already use GitHub SSH keys on the target machine, you can use the SSH clone URL instead.
 
 ### 2. Initialize Environment
 Copy the global template:
@@ -92,7 +93,6 @@ cp .env.template .env
 #### Mode A (Recommended): Local Laptop with nip.io
 Set the minimum required values in `.env`:
 - `APP_DOMAIN=127.0.0.1.nip.io`
-- `BASIC_AUTH`
 - `POSTGRES_PASSWORD`
 - `N8N_DB_PASSWORD`
 - `GRAFANA_DB_PASSWORD`
@@ -101,11 +101,6 @@ Set the minimum required values in `.env`:
 - `KEYCLOAK_ADMIN`
 - `KEYCLOAK_ADMIN_PASSWORD`
 - `KEYCLOAK_DB_PASSWORD`
-
-Generate `BASIC_AUTH` (example):
-```bash
-echo $(htpasswd -nb user password) | sed -e s/\$/\$\$/g
-```
 
 Expected access examples:
 - `https://grafana.127.0.0.1.nip.io`
@@ -169,6 +164,8 @@ Then verify core apps:
 - `https://grafana.<APP_DOMAIN>`
 - `https://keycloak.<APP_DOMAIN>`
 - `https://n8n.<APP_DOMAIN>`
+
+By default, the lab does not add Traefik basic auth in front of any routes. If you expose the lab outside a trusted network, add your own access controls before using it as a shared endpoint.
 
 ### 8. Database Syncing (Optional)
 If you add a new DB-backed app while the lab is already running, run:
