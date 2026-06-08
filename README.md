@@ -53,6 +53,11 @@ This lab provides a "Sandboxed" environment that mimics a production cloud setup
 *   **Tools**: `make`, `envsubst` (via `gettext` package on Linux).
 *   **CPU**: Modern `x86_64` recommended. Some upstream images, especially newer MySQL and Keycloak releases, may require `x86-64-v2` support. If your host is older, pin compatible image tags before first boot.
 
+### Supported Install Mode
+This repository is documented and supported for **fresh installs**.
+
+If you want to reinstall the lab, remove the existing containers and named volumes first, then generate a new `.env` and install again. Reusing old volumes with new secrets is not part of the default workflow.
+
 ---
 
 ## 🏗️ Stack Catalog
@@ -61,7 +66,7 @@ The lab is organized into modular stacks:
 
 | Category | Tools | Description |
 | :--- | :--- | :--- |
-| **Edge & Proxy** | Traefik | Wildcard SSL, Basic Auth, and Auto-Discovery |
+| **Edge & Proxy** | Traefik | Wildcard SSL and Auto-Discovery |
 | **Observability** | Prometheus, Grafana, WUD | Metrics, Dashboards, and Update Notifications |
 | **Automation** | n8n | Low-code workflow automation |
 | **Databases** | PostgreSQL, MySQL | Stateful data persistence |
@@ -73,13 +78,16 @@ The lab is organized into modular stacks:
 ## 🛠️ Quick Start
 
 ### 1. Get The Code
-Clone the repository locally:
+Clone the repository locally with HTTPS:
 ```bash
-git clone git@github.com:chinmaymjog/cloudops-sandbox.git
+git clone https://github.com/chinmayjog/cloudops-sandbox.git
 cd cloudops-sandbox
 ```
 
+Note: this repository must be readable from the target machine. If HTTPS clone prompts for GitHub credentials, use an account that has access to the repository or use an SSH clone URL with a configured GitHub key.
+
 If you plan to customize the lab and keep your own changes, fork first and clone your fork instead.
+If you already use GitHub SSH keys on the target machine, you can use the SSH clone URL instead.
 
 ### 2. Initialize Environment
 Copy the global template:
@@ -92,7 +100,6 @@ cp .env.template .env
 #### Mode A (Recommended): Local Laptop with nip.io
 Set the minimum required values in `.env`:
 - `APP_DOMAIN=127.0.0.1.nip.io`
-- `BASIC_AUTH`
 - `POSTGRES_PASSWORD`
 - `N8N_DB_PASSWORD`
 - `GRAFANA_DB_PASSWORD`
@@ -101,11 +108,6 @@ Set the minimum required values in `.env`:
 - `KEYCLOAK_ADMIN`
 - `KEYCLOAK_ADMIN_PASSWORD`
 - `KEYCLOAK_DB_PASSWORD`
-
-Generate `BASIC_AUTH` (example):
-```bash
-echo $(htpasswd -nb user password) | sed -e s/\$/\$\$/g
-```
 
 Expected access examples:
 - `https://grafana.127.0.0.1.nip.io`
@@ -155,11 +157,15 @@ Start the full lab:
 make up
 ```
 
+The first boot can take a few minutes because Docker may need to pull multiple images.
+
 ### 6. Verify Health
 ```bash
 make status
 docker ps
 ```
+
+On a fresh install, wait until core services are `Up` before opening routes in the browser.
 
 ### 7. First Login (Recommended)
 Start with Traefik dashboard:
@@ -170,27 +176,30 @@ Then verify core apps:
 - `https://keycloak.<APP_DOMAIN>`
 - `https://n8n.<APP_DOMAIN>`
 
-### 8. Database Syncing (Optional)
+By default, the lab does not add Traefik basic auth in front of any routes. If you expose the lab outside a trusted network, add your own access controls before using it as a shared endpoint.
+
+### 8. Reinstall Cleanly
+If you want a new install with new secrets, remove the existing deployment first:
+```bash
+make down
+docker volume rm pgsql-data mysql-data grafana-data n8n-data portainer-data prometheus-data traefik-log traefik-certs
+docker network rm control-plane
+```
+
+Then create a fresh `.env`, run `make setup`, and run `make up` again.
+
+### 9. Database Syncing (Optional)
 If you add a new DB-backed app while the lab is already running, run:
 ```bash
 make sync-dbs
 ```
 This safely provisions new databases and users without restarting the DB engine.
 
-Use `make sync-dbs` after changing any DB password in the root `.env`, especially on an existing deployment with persisted volumes. The sync command applies the current root `.env` credentials to the running database containers.
-
-If a service like Grafana or Keycloak fails with database authentication errors after an `.env` change, run:
-```bash
-make setup
-make sync-dbs
-docker compose -f stacks/<affected-stack>/docker-compose.yml up -d
-```
-
-### 9. Onboard a New Stack/App
+### 10. Onboard a New Stack/App
 
 Use this flow for any new stack under `stacks/<app-name>/`.
 
-#### 8.1 Create stack files
+#### 10.1 Create stack files
 
 Create a new folder and add these templates:
 
@@ -228,7 +237,7 @@ networks:
         external: true
 ```
 
-#### 8.2 Add root variables
+#### 10.2 Add root variables
 
 In root `.env`, add only variables your new stack needs, for example:
 
@@ -237,7 +246,7 @@ APP_TAG=latest
 APP_DB_PASSWORD=<strong-password>
 ```
 
-#### 8.3 Regenerate stack env files and start app
+#### 10.3 Regenerate stack env files and start app
 
 Any stack with `docker-compose.yml` is automatically picked up by startup scripts.
 
