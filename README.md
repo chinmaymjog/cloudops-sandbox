@@ -51,6 +51,7 @@ This lab provides a "Sandboxed" environment that mimics a production cloud setup
 *   **Operating System**: macOS or Linux.
 *   **Docker**: Docker Desktop (Mac) or Docker Engine (Linux).
 *   **Tools**: `make`, `envsubst` (via `gettext` package on Linux).
+*   **CPU**: Modern `x86_64` recommended. Some upstream images, especially newer MySQL and Keycloak releases, may require `x86-64-v2` support. If your host is older, pin compatible image tags before first boot.
 
 ---
 
@@ -71,13 +72,22 @@ The lab is organized into modular stacks:
 
 ## 🛠️ Quick Start
 
-### 1. Initialize Environment
+### 1. Get The Code
+Clone the repository locally:
+```bash
+git clone git@github.com:chinmaymjog/cloudops-sandbox.git
+cd cloudops-sandbox
+```
+
+If you plan to customize the lab and keep your own changes, fork first and clone your fork instead.
+
+### 2. Initialize Environment
 Copy the global template:
 ```bash
 cp .env.template .env
 ```
 
-### 2. Choose Setup Mode
+### 3. Choose Setup Mode
 
 #### Mode A (Recommended): Local Laptop with nip.io
 Set the minimum required values in `.env`:
@@ -102,7 +112,7 @@ Expected access examples:
 - `https://keycloak.127.0.0.1.nip.io`
 - `https://n8n.127.0.0.1.nip.io`
 
-Note: nip.io mode works with default/self-signed cert behavior, so browser certificate warnings are expected.
+Note: nip.io mode is for routing convenience, not trusted public TLS. Traefik will serve a default certificate in this mode, so browser certificate warnings are expected.
 
 #### Mode B: Remote VM with nip.io
 Set in `.env`:
@@ -118,6 +128,8 @@ Expected access examples:
 - `https://keycloak.<VM_PUBLIC_IP>.nip.io`
 - `https://n8n.<VM_PUBLIC_IP>.nip.io`
 
+Note: as with local nip.io mode, browser certificate warnings are expected. Use Mode C if you need publicly trusted certificates.
+
 #### Mode C (Optional Advanced): Public Domain with Cloudflare
 Use this mode only if you want DNS-challenge based certificates.
 
@@ -131,25 +143,25 @@ DNS preflight:
 1. Create wildcard DNS record `*.lab.yourdomain.com` to `127.0.0.1` (local) or VM public IP (remote).
 2. Token permissions should include DNS edit capability for the zone.
 
-### 3. Setup Infrastructure
+### 4. Setup Infrastructure
 Generate stack env files and network:
 ```bash
 make setup
 ```
 
-### 4. Launch Stack
+### 5. Launch Stack
 Start the full lab:
 ```bash
 make up
 ```
 
-### 5. Verify Health
+### 6. Verify Health
 ```bash
 make status
 docker ps
 ```
 
-### 6. First Login (Recommended)
+### 7. First Login (Recommended)
 Start with Traefik dashboard:
 - `https://traefik.<APP_DOMAIN>`
 
@@ -158,14 +170,23 @@ Then verify core apps:
 - `https://keycloak.<APP_DOMAIN>`
 - `https://n8n.<APP_DOMAIN>`
 
-### 7. Database Syncing (Optional)
+### 8. Database Syncing (Optional)
 If you add a new DB-backed app while the lab is already running, run:
 ```bash
 make sync-dbs
 ```
 This safely provisions new databases and users without restarting the DB engine.
 
-### 8. Onboard a New Stack/App
+Use `make sync-dbs` after changing any DB password in the root `.env`, especially on an existing deployment with persisted volumes. The sync command applies the current root `.env` credentials to the running database containers.
+
+If a service like Grafana or Keycloak fails with database authentication errors after an `.env` change, run:
+```bash
+make setup
+make sync-dbs
+docker compose -f stacks/<affected-stack>/docker-compose.yml up -d
+```
+
+### 9. Onboard a New Stack/App
 
 Use this flow for any new stack under `stacks/<app-name>/`.
 
