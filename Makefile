@@ -7,7 +7,6 @@ help:
 	@echo "up       - Start all lab stacks (Traefik, DBs, Apps)"
 	@echo "down     - Stop all stacks and clean up"
 	@echo "status   - Show status of running containers"
-	@echo "test-db-onboarding - Validate DB onboarding env wiring behavior"
 
 setup:
 	@bash scripts/setup.sh
@@ -19,10 +18,11 @@ down:
 	@bash scripts/stacks-down.sh
 
 status:
-	@docker ps --filter name=traefik --filter name=postgresql --filter name=mysql --filter name=n8n --filter name=grafana
+	@docker ps --format '{{.Names}}\t{{.Status}}' \
+		--filter name=traefik --filter name=cloudflared \
+		--filter name=postgresql --filter name=mysql \
+		--filter name=keycloak --filter name=n8n --filter name=grafana --filter name=prometheus \
+		--filter name=portainer --filter name=adminer --filter name=phpmyadmin --filter name=wud
 
 sync-dbs:
 	@bash scripts/sync-dbs.sh
-
-test-db-onboarding:
-	@bash scripts/test-db-onboarding-env-wiring.sh

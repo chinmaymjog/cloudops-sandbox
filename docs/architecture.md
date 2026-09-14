@@ -136,6 +136,36 @@ See high-level architecture diagram in `README.md`.
 - Consequences: Better consistency, ingress complexity increases.
 - Review trigger: Routing conflicts or TLS management overhead becomes dominant.
 
+- ID: ADR-003
+- Title: Add Cloudflare Tunnel (`cloudflared`) as an optional public ingress path in front of Traefik
+- Status: Accepted
+- Date: 2026-09-14
+- Context: The lab commonly runs on a home laptop/server behind NAT/CGNAT with
+  no static public IP. Reaching it from outside the LAN previously required
+  forwarding ports 80/443 on the router, which exposes the host directly to
+  the internet and doesn't work at all behind CGNAT.
+- Decision: Add a `stacks/cloudflared` stack running `cloudflare/cloudflared`
+  on the `control-plane` network with a single wildcard Public Hostname
+  (`*.${APP_DOMAIN}`) pointed at `https://traefik:443`. `cloudflared` makes
+  an outbound-only connection to Cloudflare's edge, so no inbound ports are
+  opened anywhere. Traefik keeps doing host-based routing and TLS (its
+  existing Mode C DNS-01 cert), so onboarding a new stack still only needs
+  Traefik labels — no per-app tunnel config.
+- Requirement links: FR-003, NFR-001
+- Alternatives considered: Router port-forwarding + dynamic DNS (fails under
+  CGNAT, exposes the host directly); a locally-managed tunnel with a
+  committed `config.yml`/`credentials.json` (more code-visible ingress
+  rules, but adds a credentials file to keep out of VCS and a manual
+  `cloudflared tunnel create` step per deployment, for no benefit once the
+  wildcard route is in place).
+- Consequences: Public exposure now depends on Cloudflare's edge being
+  reachable; hostname-to-service mapping for the wildcard route lives in the
+  Zero Trust dashboard rather than in git. Recommend pairing with Cloudflare
+  Access policies on sensitive hostnames (Traefik/Portainer/DB admin UIs)
+  since the tunnel alone does not add authentication.
+- Review trigger: Needing per-app tunnel behavior (e.g. different origin
+  ports/protocols per stack) that a single wildcard route can't express.
+
 ## Requirement to Design Mapping
 
 | Requirement ID | Architectural Element | ADR ID | Notes |
