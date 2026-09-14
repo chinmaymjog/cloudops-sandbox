@@ -16,16 +16,18 @@ error() { printf '❌ Error: %s\n' "$*" >&2; exit 1; }
 [[ -f "$TEMPLATE" ]] || error ".env.template not found at $TEMPLATE"
 command -v openssl >/dev/null 2>&1 || error "openssl is required to generate secrets."
 
-# name:generator - placeholder values are read from .env.template at runtime
-# so this list has one source of truth for what "still default" means.
-SECRET_VARS=(
-    "POSTGRES_PASSWORD:hex16"
-    "N8N_DB_PASSWORD:hex16"
-    "GRAFANA_DB_PASSWORD:hex16"
-    "MYSQL_ROOT_PASSWORD:hex16"
-    "N8N_ENCRYPTION_KEY:hex32"
-    "KEYCLOAK_ADMIN_PASSWORD:hex16"
-    "KEYCLOAK_DB_PASSWORD:hex16"
+# Placeholder values for these are read from .env.template at runtime, so
+# this list has one source of truth for what "still default" means.
+VARS_32_HEX_CHARS=(
+    POSTGRES_PASSWORD
+    N8N_DB_PASSWORD
+    GRAFANA_DB_PASSWORD
+    MYSQL_ROOT_PASSWORD
+    KEYCLOAK_ADMIN_PASSWORD
+    KEYCLOAK_DB_PASSWORD
+)
+VARS_64_HEX_CHARS=(
+    N8N_ENCRYPTION_KEY
 )
 
 read_value() {
@@ -36,30 +38,36 @@ read_value() {
 generated=0
 skipped=0
 
-for entry in "${SECRET_VARS[@]}"; do
-    IFS=':' read -r name kind <<< "$entry"
+fill_if_default() {
+    local name=$1 byte_len=$2
+    local placeholder current value tmp
+
     placeholder=$(read_value "$name" "$TEMPLATE")
     current=$(read_value "$name" "$ROOT_ENV")
 
     if [[ -z "$current" ]]; then
         log "⚠️  $name not found in .env; skipping"
-        continue
+        return
     fi
 
     if [[ "$current" != "$placeholder" ]]; then
         skipped=$((skipped + 1))
-        continue
+        return
     fi
 
-    case "$kind" in
-        hex16) value=$(openssl rand -hex 16) ;;
-        hex32) value=$(openssl rand -hex 32) ;;
-    esac
-
+    value=$(openssl rand -hex "$byte_len")
     tmp=$(mktemp)
     sed "s|^${name}=.*|${name}=${value}|" "$ROOT_ENV" > "$tmp" && mv "$tmp" "$ROOT_ENV"
     log "Generated $name"
     generated=$((generated + 1))
+}
+
+for name in "${VARS_32_HEX_CHARS[@]}"; do
+    fill_if_default "$name" 16
+done
+
+for name in "${VARS_64_HEX_CHARS[@]}"; do
+    fill_if_default "$name" 32
 done
 
 echo ""
