@@ -62,17 +62,46 @@ If you want to reinstall the lab, remove the existing containers and named volum
 
 ## 🏗️ Stack Catalog
 
-The lab is organized into modular stacks:
+The lab is organized into modular stacks. **Core** stacks always start with
+`make up`; **optional** stacks are grouped behind Docker Compose profiles and
+only start when you ask for them — see [Optional Stack
+Groups](#-optional-stack-groups) below.
 
-| Category | Tools | Description |
-| :--- | :--- | :--- |
-| **Edge & Proxy** | Traefik | Wildcard SSL and Auto-Discovery |
-| **Public Ingress** | Cloudflared | Cloudflare Tunnel — exposes the lab publicly with no router port-forwarding |
-| **Observability** | Prometheus, Grafana, WUD | Metrics, Dashboards, and Update Notifications |
-| **Automation** | n8n | Low-code workflow automation |
-| **Databases** | PostgreSQL, MySQL | Stateful data persistence |
-| **Identity** | Keycloak | Identity and Access Management (OIDC/SAML) |
-| **Management** | Portainer, Adminer, phpMyAdmin | Container and DB management UIs |
+| Tier | Category | Tools | Description |
+| :--- | :--- | :--- | :--- |
+| Core | Edge & Proxy | Traefik | Wildcard SSL and Auto-Discovery |
+| Core | Public Ingress | Cloudflared | Cloudflare Tunnel — exposes the lab publicly with no router port-forwarding |
+| Core | Databases | PostgreSQL | Stateful data persistence (backs Grafana and n8n) |
+| Core | Observability | Prometheus, Grafana | Metrics and Dashboards |
+| Core | Automation | n8n | Low-code workflow automation |
+| Optional (`identity`) | Identity | Keycloak | Identity and Access Management (OIDC/SAML) |
+| Optional (`db-admin`) | Databases | MySQL, Adminer, phpMyAdmin | A second DB engine plus web-based DB admin UIs |
+| Optional (`management`) | Management | Portainer, WUD | Container management UI and image-update notifications |
+
+### 🔀 Optional Stack Groups
+
+`make up` brings up only the core stacks above — a lean first run with
+fewer containers, fewer passwords to set, and less exposed surface. Add
+optional groups with the `PROFILE` variable (comma-separated, or `all` for
+everything):
+
+```bash
+make up                              # core only
+make up PROFILE=identity             # core + Keycloak
+make up PROFILE=db-admin,management  # core + MySQL/Adminer/phpMyAdmin + Portainer/WUD
+make up PROFILE=all                  # everything
+```
+
+Re-running `make up` with a wider `PROFILE` on top of an already-running
+core setup is safe — it only starts what wasn't already up. `make down`
+always tears down everything, core and optional, regardless of what
+`PROFILE` was used to bring it up.
+
+Optional groups still need their secrets set in `.env` before you request
+them the first time (`make gen-secrets` covers `MYSQL_ROOT_PASSWORD`,
+`KEYCLOAK_ADMIN_PASSWORD`, `KEYCLOAK_DB_PASSWORD` the same way as core
+secrets — you just don't need to have filled them in if you never bring
+those stacks up).
 
 ---
 
@@ -304,7 +333,8 @@ make setup
 ```
 
 ### 5. Launch Stack
-Start the full lab:
+Start the core lab (see [Optional Stack Groups](#-optional-stack-groups) to
+add Keycloak, MySQL/Adminer/phpMyAdmin, or Portainer/WUD):
 ```bash
 make up
 ```
@@ -390,6 +420,11 @@ networks:
     control-plane:
         external: true
 ```
+
+A stack with no `profiles:` key is core and always starts with `make up`.
+To make it optional instead, add it to an existing group or a new one —
+e.g. `profiles: ["management"]` — and remember `scripts/stacks-down.sh`
+tears down unconditionally, so no changes are needed there.
 
 #### 10.2 Add root variables
 
