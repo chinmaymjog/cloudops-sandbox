@@ -11,6 +11,8 @@ services:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
     networks:
       - control-plane
+    labels:
+      - traefik.enable=false
 
 networks:
   control-plane:
