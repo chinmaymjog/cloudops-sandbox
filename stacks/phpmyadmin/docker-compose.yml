@@ -3,6 +3,8 @@ services:
     image: phpmyadmin:${PHPMYADMIN_TAG}
     container_name: phpmyadmin
     restart: unless-stopped
+    profiles:
+      - db-admin
     networks:
       - control-plane
     environment:
