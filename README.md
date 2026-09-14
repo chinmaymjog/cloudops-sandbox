@@ -97,6 +97,11 @@ Only edit these files for normal setup and customization:
 
 Do not assume any generated env file needs manual edits. Re-run `make setup` after changing templates or root env values.
 
+Two stacks also ship a hand-edited (not templated) config file for advanced tuning:
+`stacks/traefik/conf/traefik.yml` (e.g. the ACME registration email) and
+`stacks/prometheus/conf/prometheus.yml` (scrape targets). Changes to these take
+effect on the next `docker compose ... up -d` — no `make setup` needed.
+
 ### 1. Get The Code
 Clone the repository locally with HTTPS:
 ```bash
