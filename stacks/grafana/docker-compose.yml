@@ -11,6 +11,8 @@ services:
     networks:
       - control-plane
     environment:
+      - GF_SERVER_DOMAIN=grafana.${APP_DOMAIN}
+      - GF_SERVER_ROOT_URL=https://grafana.${APP_DOMAIN}/
       - GF_DATABASE_TYPE=postgres
       - GF_DATABASE_HOST=postgresql:5432
       - GF_DATABASE_NAME=grafana
