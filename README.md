@@ -132,10 +132,18 @@ make gen-secrets
 This only touches values that still match the `.env.template` default, so it's
 safe to run again later — anything you've already customized is left alone.
 It covers `POSTGRES_PASSWORD`, `N8N_DB_PASSWORD`, `GRAFANA_DB_PASSWORD`,
-`MYSQL_ROOT_PASSWORD`, `N8N_ENCRYPTION_KEY`, `KEYCLOAK_ADMIN_PASSWORD`, and
-`KEYCLOAK_DB_PASSWORD`. It does not touch `APP_DOMAIN`, image tags, or any
-Cloudflare credentials — those come from you or your Cloudflare account, not
-from a generator.
+`GRAFANA_ADMIN_PASSWORD`, `MYSQL_ROOT_PASSWORD`, `N8N_ENCRYPTION_KEY`,
+`KEYCLOAK_ADMIN_PASSWORD`, and `KEYCLOAK_DB_PASSWORD`. It does not touch
+`APP_DOMAIN`, image tags, or any Cloudflare credentials — those come from you
+or your Cloudflare account, not from a generator.
+
+> [!IMPORTANT]
+> `GRAFANA_ADMIN_PASSWORD` only takes effect on Grafana's first boot. If
+> Grafana has already started once (even with the placeholder value, which
+> means it's running on the well-known default `admin`/`admin`), changing
+> this env var and recreating the container will **not** change an
+> already-created admin account's password. Fix a running instance with
+> `docker exec grafana grafana-cli admin reset-admin-password <new-password>`.
 
 ### 3. Choose Setup Mode
 
@@ -145,6 +153,7 @@ from a generator.
 - `POSTGRES_PASSWORD`
 - `N8N_DB_PASSWORD`
 - `GRAFANA_DB_PASSWORD`
+- `GRAFANA_ADMIN_PASSWORD`
 - `MYSQL_ROOT_PASSWORD`
 - `N8N_ENCRYPTION_KEY`
 - `KEYCLOAK_ADMIN` (username, not generated — defaults to `admin`)
@@ -201,6 +210,17 @@ Set the same values as Mode C (`APP_DOMAIN`, `CF_API_EMAIL`, `CF_DNS_API_TOKEN`
 for the wildcard cert), plus:
 - `CLOUDFLARE_TUNNEL_TOKEN` (uncomment in `.env.template`)
 
+> [!IMPORTANT]
+> `APP_DOMAIN` must be your zone apex (e.g. `yourdomain.com`) or, at most,
+> one label deep — **not** a subdomain like `tools.yourdomain.com`.
+> Cloudflare's free Universal SSL only covers the apex and its direct
+> first-level wildcard (`*.yourdomain.com`); it does **not** cover a second
+> -level wildcard like `*.tools.yourdomain.com`. Using a subdomain there
+> makes the Cloudflare edge itself unable to complete TLS for any of your
+> service hostnames (symptom: `curl`/browser fails at the TLS handshake,
+> before ever reaching your tunnel) — fixable only by paying for Advanced
+> Certificate Manager, or by dropping down to the apex/first level instead.
+
 Steps:
 1. In the [Zero Trust dashboard](https://one.dash.cloudflare.com/) go to
    **Networks -> Tunnels -> Create a tunnel**, choose **Cloudflared**, name it
@@ -216,14 +236,66 @@ Steps:
      subdomain and can route by `Host()` rule.
    This single wildcard route covers every current and future stack — no
    dashboard changes needed when you add a new app in step 10 below.
-3. No DNS preflight needed here: creating the Public Hostname above
-   auto-creates the proxied DNS record for you, and no ports need to be open
-   on your router/firewall at all.
-4. (Recommended) In **Access -> Applications**, add an application per
-   sensitive hostname (Traefik dashboard, Portainer, Adminer/phpMyAdmin,
-   Keycloak admin) with a policy allowing only your own email. This gates
-   the request before it ever reaches the container — free for a handful of
-   users on Cloudflare's Zero Trust free plan.
+3. Cloudflare cannot auto-create a DNS record for a wildcard (`*`) Public
+   Hostname — the dashboard will warn "no DNS record will be created" when
+   you save step 2. Save it anyway (it still configures the tunnel's
+   routing), then add the record yourself: regular Cloudflare dashboard ->
+   your zone -> **DNS -> Records -> Add record** -> Type `CNAME`, Name `*`
+   (just the asterisk — Cloudflare appends the zone name itself; typing
+   `*.yourdomain.com` here creates the broken `*.yourdomain.com.yourdomain.com`
+   and silently doesn't work), Target `<TUNNEL_UUID>.cfargotunnel.com` (the
+   UUID is on the tunnel's page in the Zero Trust dashboard — **not** the
+   Connector ID shown in the same area, which is a different value and
+   won't route), Proxy status **Proxied** (orange cloud — required,
+   DNS-only won't route through the tunnel). No ports need to be open on
+   your router/firewall at all.
+4. On the same route, expand **Additional application settings -> TLS**
+   and turn on **Match SNI to Host** (or, if your dashboard doesn't have
+   that toggle, set **Origin Server Name** to any hostname under
+   `APP_DOMAIN`, e.g. `traefik.${APP_DOMAIN}`). Without this, `cloudflared`
+   sends no SNI when it connects to `https://traefik:443`, so Traefik can't
+   match its real wildcard cert and falls back to its self-signed default
+   — which `cloudflared` then refuses to verify. Symptom: `cloudflared`
+   logs `tls: failed to verify certificate: ... valid for ...traefik.default,
+   not traefik` and every request 502s, even though DNS and the tunnel
+   connection are both fine.
+5. **Do this before telling anyone else the URL.** In **Access ->
+   Applications**, add an application per hostname with a policy allowing
+   only your own email — free for a handful of users on Cloudflare's Zero
+   Trust free plan, and it gates the request before it ever reaches the
+   container. Priority order, highest risk first:
+   1. `traefik.<APP_DOMAIN>` — the dashboard has no login of its own in
+      this repo's default setup (see the basic-auth note under "First
+      Login" below).
+   2. `grafana.<APP_DOMAIN>` — **check this one is not still on the
+      default `admin`/`admin` login** (see the `GRAFANA_ADMIN_PASSWORD`
+      note in step 2) before leaving it reachable at all.
+   3. `portainer.<APP_DOMAIN>` — full Docker daemon control once logged
+      in; if you haven't completed Portainer's first-run admin setup yet,
+      whoever reaches it first claims that account.
+   4. `prometheus.<APP_DOMAIN>` — no login at all, exposes internal
+      metrics and service topology.
+   5. `keycloak.<APP_DOMAIN>` (the `/admin` console), `n8n.<APP_DOMAIN>`,
+      `adminer.<APP_DOMAIN>`, `phpmyadmin.<APP_DOMAIN>` — each has its own
+      login, but they're admin/automation/DB-credential surfaces and
+      shouldn't be left open to credential-stuffing regardless.
+
+### Troubleshooting Mode D
+
+- **Cloudflare error 1033** with a tunnel that's otherwise connected and
+  healthy almost always means the DNS record's Target doesn't actually
+  point at the tunnel serving your Public Hostname route — recheck the
+  UUID in the record against `docker logs cloudflared | grep tunnelID`
+  on your host, not just what you think you copied.
+- **`cloudflared` logs show a config version that doesn't advance** after
+  you save a dashboard change: `docker restart cloudflared` — it fetches
+  the current config fresh on reconnect, sidestepping any stuck
+  push-notification.
+- If you created more than one tunnel while troubleshooting, make sure
+  `CLOUDFLARE_TUNNEL_TOKEN` in `.env`, the DNS record's Target, and the
+  Public Hostname route are all for the *same* tunnel ID — mixing an old
+  token with a new tunnel's DNS record (or vice versa) produces 1033 with
+  no other symptom.
 
 ### 4. Setup Infrastructure
 Generate stack env files and network:
