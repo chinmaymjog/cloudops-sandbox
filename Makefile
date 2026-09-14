@@ -5,8 +5,13 @@ help:
 	@echo "================================================"
 	@echo "gen-secrets - Fill in random values for any password/key still at its template default"
 	@echo "setup    - Initialize network and generate .env files"
-	@echo "up       - Start all lab stacks (Traefik, DBs, Apps)"
-	@echo "down     - Stop all stacks and clean up"
+	@echo "up       - Start core stacks (Traefik, Cloudflared, Postgres, Grafana, Prometheus, n8n)"
+	@echo "           Add optional groups with PROFILE=<group1,group2,...> or PROFILE=all:"
+	@echo "             identity   - Keycloak"
+	@echo "             db-admin   - MySQL, Adminer, phpMyAdmin"
+	@echo "             management - Portainer, WUD"
+	@echo "           e.g. make up PROFILE=identity,management"
+	@echo "down     - Stop all stacks (core and optional) and clean up"
 	@echo "status   - Show status of running containers"
 
 gen-secrets:
@@ -16,7 +21,7 @@ setup:
 	@bash scripts/setup.sh
 
 up:
-	@bash scripts/stacks-up.sh
+	@PROFILE=$(PROFILE) bash scripts/stacks-up.sh
 
 down:
 	@bash scripts/stacks-down.sh
