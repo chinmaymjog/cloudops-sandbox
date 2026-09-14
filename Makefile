@@ -7,7 +7,6 @@ help:
 	@echo "up       - Start all lab stacks (Traefik, DBs, Apps)"
 	@echo "down     - Stop all stacks and clean up"
 	@echo "status   - Show status of running containers"
-	@echo "test-db-onboarding - Validate DB onboarding env wiring behavior"
 
 setup:
 	@bash scripts/setup.sh
@@ -23,6 +22,3 @@ status:
 
 sync-dbs:
 	@bash scripts/sync-dbs.sh
-
-test-db-onboarding:
-	@bash scripts/test-db-onboarding-env-wiring.sh
