@@ -1,12 +1,16 @@
-.PHONY: help setup up down status
+.PHONY: help gen-secrets setup up down status
 
 help:
 	@echo "CloudOps-Sandbox - Management Commands"
 	@echo "================================================"
+	@echo "gen-secrets - Fill in random values for any password/key still at its template default"
 	@echo "setup    - Initialize network and generate .env files"
 	@echo "up       - Start all lab stacks (Traefik, DBs, Apps)"
 	@echo "down     - Stop all stacks and clean up"
 	@echo "status   - Show status of running containers"
+
+gen-secrets:
+	@bash scripts/generate-secrets.sh
 
 setup:
 	@bash scripts/setup.sh
