@@ -216,9 +216,17 @@ Steps:
      subdomain and can route by `Host()` rule.
    This single wildcard route covers every current and future stack — no
    dashboard changes needed when you add a new app in step 10 below.
-3. No DNS preflight needed here: creating the Public Hostname above
-   auto-creates the proxied DNS record for you, and no ports need to be open
-   on your router/firewall at all.
+3. Cloudflare cannot auto-create a DNS record for a wildcard (`*`) Public
+   Hostname — the dashboard will warn "no DNS record will be created" when
+   you save step 2. Save it anyway (it still configures the tunnel's
+   routing), then add the record yourself: regular Cloudflare dashboard ->
+   your zone -> **DNS -> Records -> Add record** -> Type `CNAME`, Name `*`
+   (or `*.sub` if `APP_DOMAIN` is a subdomain, e.g. `*.tools` for
+   `tools.yourdomain.com`), Target `<TUNNEL_UUID>.cfargotunnel.com` (the
+   UUID is shown on the tunnel's page in the Zero Trust dashboard), Proxy
+   status **Proxied** (orange cloud — required, DNS-only won't route
+   through the tunnel). No ports need to be open on your router/firewall
+   at all.
 4. (Recommended) In **Access -> Applications**, add an application per
    sensitive hostname (Traefik dashboard, Portainer, Adminer/phpMyAdmin,
    Keycloak admin) with a policy allowing only your own email. This gates
