@@ -3,6 +3,8 @@ services:
     image: adminer:${ADMINER_TAG}
     container_name: adminer
     restart: unless-stopped
+    profiles:
+      - db-admin
     networks:
       - control-plane
     labels:
