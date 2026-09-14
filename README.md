@@ -50,7 +50,7 @@ This lab provides a "Sandboxed" environment that mimics a production cloud setup
 ### System Requirements
 *   **Operating System**: macOS or Linux.
 *   **Docker**: Docker Desktop (Mac) or Docker Engine (Linux).
-*   **Tools**: `git`, `docker`, `docker compose`, `make`, `envsubst` (via `gettext` package on Linux).
+*   **Tools**: `git`, `docker`, `docker compose`, `make`, `envsubst` (via `gettext` package on Linux), `openssl` (used by `make gen-secrets`; preinstalled on macOS and most Linux distros).
 *   **CPU**: Modern `x86_64` recommended. Some upstream images, especially newer MySQL and Keycloak releases, may require `x86-64-v2` support. If your host is older, pin compatible image tags before first boot.
 
 ### Supported Install Mode
@@ -82,9 +82,10 @@ Start here if you just want the working path:
 
 1. clone the repo
 2. copy `.env`
-3. run `make setup`
-4. run `make up`
-5. run `make status`
+3. run `make gen-secrets` to fill in random passwords/keys
+4. run `make setup`
+5. run `make up`
+6. run `make status`
 
 ### What You Edit
 
@@ -124,17 +125,29 @@ Copy the global template:
 cp .env.template .env
 ```
 
+Then fill in random values for every password/key still at its placeholder default:
+```bash
+make gen-secrets
+```
+This only touches values that still match the `.env.template` default, so it's
+safe to run again later — anything you've already customized is left alone.
+It covers `POSTGRES_PASSWORD`, `N8N_DB_PASSWORD`, `GRAFANA_DB_PASSWORD`,
+`MYSQL_ROOT_PASSWORD`, `N8N_ENCRYPTION_KEY`, `KEYCLOAK_ADMIN_PASSWORD`, and
+`KEYCLOAK_DB_PASSWORD`. It does not touch `APP_DOMAIN`, image tags, or any
+Cloudflare credentials — those come from you or your Cloudflare account, not
+from a generator.
+
 ### 3. Choose Setup Mode
 
 #### Mode A (Recommended): Local Laptop with nip.io
-Set the minimum required values in `.env`:
-- `APP_DOMAIN=127.0.0.1.nip.io`
+`APP_DOMAIN=127.0.0.1.nip.io` is already the `.env.template` default. Run
+`make gen-secrets` (see step 2 above) to fill in the required passwords/keys:
 - `POSTGRES_PASSWORD`
 - `N8N_DB_PASSWORD`
 - `GRAFANA_DB_PASSWORD`
 - `MYSQL_ROOT_PASSWORD`
 - `N8N_ENCRYPTION_KEY`
-- `KEYCLOAK_ADMIN`
+- `KEYCLOAK_ADMIN` (username, not generated — defaults to `admin`)
 - `KEYCLOAK_ADMIN_PASSWORD`
 - `KEYCLOAK_DB_PASSWORD`
 
@@ -388,6 +401,7 @@ Only uncomment/configure them if you want Slack alerts for image updates:
 ## 🧰 Helpful Commands
 
 ```bash
+make gen-secrets # fill in random values for any password/key still at its template default
 make setup      # regenerate stack env files
 make up         # start all stacks
 make down       # stop all stacks
