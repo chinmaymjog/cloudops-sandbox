@@ -1,192 +1,63 @@
-# Architecture and Decisions
+# Architecture
 
-## Document Control
+## What This Is
 
-- Project: CloudOps-Sandbox
-- Owner: Chinmay Jog
-- Last updated: 2026-06-05
-- Version: 0.1.0
+A local-cloud style platform for testing infrastructure components,
+observability stacks, and automation tools, with one consistent ingress
+and environment model. See the architecture diagram in `README.md`.
 
-## How To Use This File
+## How It Works
 
-- Explain design choices so a new engineer can understand trade-offs quickly.
-- Keep each section tied to requirement IDs from docs/project-spec.md.
-- Add one ADR entry whenever a non-trivial decision is made.
+- **Traefik** is the single ingress entry point - all routing is
+  host-based (`<service>.<APP_DOMAIN>`), with TLS handled per the
+  chosen setup mode (see README).
+- Each tool lives in its own `stacks/<name>/` directory with its own
+  `docker-compose.yml` and `.env.template` - no monolithic compose file.
+- `make setup` regenerates every stack's `.env` from the root `.env` via
+  `scripts/setup.sh`; `make up` brings up core stacks (or more, via
+  `PROFILE=`) via `scripts/stacks-up.sh`.
+- Shared Postgres/MySQL init scripts provision per-service databases and
+  users on startup.
+- State persists via named Docker volumes.
 
-## System Context
+## Key Decisions
 
-### Business and Technical Context
+- **Decision:** Modular stack directories under `stacks/<name>/`, not a
+  single compose file.
+  **Why:** Scales to many tools without one file becoming unmanageable;
+  each stack is self-contained (compose + env template).
+  **Revisit if:** Stack count causes real orchestration overhead.
 
-CloudOps-Sandbox provides a local-cloud style platform for testing infrastructure components, observability stacks, and automation tools with a consistent ingress and environment model.
+- **Decision:** Standardize ingress on Traefik with a wildcard host
+  strategy (`<service>.$APP_DOMAIN`), not per-stack host ports.
+  **Why:** One consistent access pattern for local and remote runs,
+  instead of remembering a different port per tool.
+  **Revisit if:** Routing conflicts or TLS management overhead becomes
+  the dominant pain point.
 
-### Architecture Goals
+- **Decision:** Add `stacks/cloudflared` (Cloudflare Tunnel) as an
+  optional public ingress path in front of Traefik.
+  **Why:** The lab commonly runs behind NAT/CGNAT with no static public
+  IP. A tunnel makes an outbound-only connection to Cloudflare's edge,
+  so nothing needs to be opened on the router - unlike port-forwarding,
+  which also just doesn't work under CGNAT.
+  **Revisit if:** Per-app tunnel behavior (different origin
+  ports/protocols per stack) is needed that a single wildcard route
+  can't express.
 
-- Keep onboarding of new stacks modular and low-friction.
-- Ensure consistent ingress/routing and shared persistence patterns.
+- **Decision:** Split stacks into a core set (always up) and opt-in
+  Docker Compose profiles (`identity`, `db-admin`, `management`) for
+  Keycloak, MySQL/Adminer/phpMyAdmin, and Portainer/WUD.
+  **Why:** `make up` used to bring up all 12 stacks unconditionally -
+  more containers, more passwords to set, more exposed surface than
+  most first-time users need. Core-only is a much smaller first step.
+  **Revisit if:** A group needs finer-grained selection than
+  `PROFILE=<group1,group2>` comfortably supports.
 
-## High-Level Design
+## Known Risks / Rough Edges
 
-### Component Overview
-
-| Component | Responsibility | Owner |
-| --------- | -------------- | ----- |
-| Traefik Edge | TLS/routing and ingress entry point | Platform Team |
-| Stack Catalog (`stacks/*`) | Modular application/service definitions | Platform Team |
-| Shared Datastores | Stateful backends for dependent services | Platform Team |
-| Automation Scripts/Make | Lifecycle orchestration and setup | Platform Team |
-
-### Interaction Diagram
-
-See high-level architecture diagram in `README.md`.
-
-## Data and Control Flow
-
-### Request/Response Flow
-
-1. User accesses stack host (`<service>.<APP_DOMAIN>`).
-2. Traefik resolves route and forwards request to target stack service.
-3. Service reads stack-specific env and optional shared datastore credentials.
-4. Observability stack captures metrics and service health signals.
-
-### State and Data Model Notes
-
-- Persistent service state is maintained through named Docker volumes.
-- Shared DB initialization scripts create service-specific users/databases.
-
-### Failure Paths
-
-- Broken stack env generation blocks startup in setup phase.
-- Routing misconfiguration causes service unreachability despite container health.
-- Database sync failures leave partially initialized dependencies.
-
-## Deployment Architecture
-
-### Environments
-
-- Local laptop/dev workstation
-- Remote VM (public IP or managed DNS)
-
-### Runtime Topology
-
-- Single Docker host with multiple compose-defined stacks.
-- Shared control-plane network for ingress and inter-stack connectivity.
-
-### Release and Rollback Strategy
-
-- Deploy changes via Git branch + PR.
-- Rollback by reverting compose/env/script changes and re-running lifecycle commands.
-
-## Security and Compliance
-
-- AuthN/AuthZ model: Stack-specific auth; optional identity provider integration via Keycloak.
-- Secret management: `.env.template` tracked, real `.env` excluded from VCS.
-- Input validation boundaries: Traefik routing + stack application validation.
-- Audit/logging requirements: Service logs plus Traefik and observability telemetry.
-
-## Observability Strategy
-
-- Logs: container/service logs via Docker and stack tools.
-- Metrics: Prometheus scraping for stack monitoring.
-- Traces: not standardized yet; candidate future enhancement.
-- Alerts/SLOs: currently manual/experimental; to be formalized.
-
-## External Dependencies
-
-| Dependency | Purpose | SLA/Risk | Backup Plan |
-| ---------- | ------- | -------- | ----------- |
-| Docker Engine/Desktop | Runtime execution | Local daemon instability | Restart daemon and re-run lifecycle |
-| DNS (`nip.io` or public provider) | Hostname routing strategy | DNS/cert setup errors | Fall back to host mapping/self-signed mode |
-
-## Architecture Decision Records (ADR-lite)
-
-### Decision Template
-
-- ID: ADR-00X
-- Title:
-- Status: Proposed | Accepted | Deprecated | Superseded
-- Date:
-- Context:
-- Decision:
-- Requirement links: FR-... | NFR-...
-- Alternatives considered:
-- Consequences:
-- Review trigger:
-
-### Decisions
-
-- ID: ADR-001
-- Title: Use modular stack directories under `stacks/<name>`
-- Status: Accepted
-- Date: 2026-06-05
-- Context: Need scalable onboarding for many tools without monolithic compose file.
-- Decision: Each tool/service is encapsulated in its own stack directory with compose and env template.
-- Requirement links: FR-002, NFR-002
-- Alternatives considered: Single large compose file.
-- Consequences: Better modularity, more files to maintain.
-- Review trigger: Stack count causes excessive orchestration overhead.
-
-- ID: ADR-002
-- Title: Standardize ingress on Traefik with wildcard host strategy
-- Status: Accepted
-- Date: 2026-06-05
-- Context: Need consistent access pattern for local and remote runs.
-- Decision: Route all stack access through Traefik using APP_DOMAIN pattern.
-- Requirement links: FR-003, NFR-001
-- Alternatives considered: Per-stack host port exposure.
-- Consequences: Better consistency, ingress complexity increases.
-- Review trigger: Routing conflicts or TLS management overhead becomes dominant.
-
-- ID: ADR-003
-- Title: Add Cloudflare Tunnel (`cloudflared`) as an optional public ingress path in front of Traefik
-- Status: Accepted
-- Date: 2026-09-14
-- Context: The lab commonly runs on a home laptop/server behind NAT/CGNAT with
-  no static public IP. Reaching it from outside the LAN previously required
-  forwarding ports 80/443 on the router, which exposes the host directly to
-  the internet and doesn't work at all behind CGNAT.
-- Decision: Add a `stacks/cloudflared` stack running `cloudflare/cloudflared`
-  on the `control-plane` network with a single wildcard Public Hostname
-  (`*.${APP_DOMAIN}`) pointed at `https://traefik:443`. `cloudflared` makes
-  an outbound-only connection to Cloudflare's edge, so no inbound ports are
-  opened anywhere. Traefik keeps doing host-based routing and TLS (its
-  existing Mode C DNS-01 cert), so onboarding a new stack still only needs
-  Traefik labels — no per-app tunnel config.
-- Requirement links: FR-003, NFR-001
-- Alternatives considered: Router port-forwarding + dynamic DNS (fails under
-  CGNAT, exposes the host directly); a locally-managed tunnel with a
-  committed `config.yml`/`credentials.json` (more code-visible ingress
-  rules, but adds a credentials file to keep out of VCS and a manual
-  `cloudflared tunnel create` step per deployment, for no benefit once the
-  wildcard route is in place).
-- Consequences: Public exposure now depends on Cloudflare's edge being
-  reachable; hostname-to-service mapping for the wildcard route lives in the
-  Zero Trust dashboard rather than in git. Recommend pairing with Cloudflare
-  Access policies on sensitive hostnames (Traefik/Portainer/DB admin UIs)
-  since the tunnel alone does not add authentication.
-- Review trigger: Needing per-app tunnel behavior (e.g. different origin
-  ports/protocols per stack) that a single wildcard route can't express.
-
-## Requirement to Design Mapping
-
-| Requirement ID | Architectural Element | ADR ID | Notes |
-| -------------- | --------------------- | ------ | ----- |
-| FR-001 | Makefile + scripts lifecycle | ADR-001 | setup/up/down/status contract |
-| FR-002 | `stacks/<name>` modular pattern | ADR-001 | per-stack encapsulation |
-| FR-003 | Traefik edge routing | ADR-002 | wildcard host approach |
-| FR-004 | DB sync workflow | ADR-001 | incremental DB provisioning |
-| FR-005 | README deployment flows | ADR-002 | local + remote consistency |
-| NFR-001 | Cross-OS workflow | ADR-002 | local/remote deployment options |
-| NFR-002 | Low-friction lifecycle ops | ADR-001 | make-target standardization |
-| NFR-003 | Env template strategy | ADR-001 | real env excluded from VCS |
-| NFR-004 | Named volume persistence | ADR-001 | state retention model |
-
-## Lessons Learned
-
-- Modular stack boundaries reduce coupling and experimentation risk.
-- Unified ingress significantly improves operator usability.
-
-## Pending Decisions
-
-- Decision needed: Standard tracing approach across stacks.
-- Owner: Platform Team
-- Due date: 2026-07-15
+- Broken stack env generation blocks startup at the setup phase (fail
+  fast, not silent).
+- No Kubernetes runtime in scope - that's `k3s-argocd-sandbox`.
+- Tracing isn't standardized; logs and Prometheus metrics are the
+  current observability surface.

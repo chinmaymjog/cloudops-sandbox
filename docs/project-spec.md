@@ -1,78 +1,46 @@
 # Problem
 
-## Document Control
+## What are you building, and why?
 
-- Project: CloudOps-Sandbox
-- Owner: Chinmay Jog
-- Last updated: 2026-06-05
-- Version: 0.1.0
-
-## How To Use This File
-
-- Keep each section short and concrete.
-- Prefer measurable statements over vague goals.
-- Add requirement IDs you can trace into architecture and tasks.
+A modular local-cloud sandbox for testing infrastructure components,
+observability stacks, and automation tools on a laptop or remote VM,
+with one-command lifecycle operations (`make setup`, `make up`, `make
+down`) and a consistent ingress/domain model across every stack.
 
 ## Goals
 
-- Standardize a modular local-cloud sandbox for platform engineering experiments.
-- Provide one-command lifecycle operations (`make setup`, `make up`, `make down`).
-- Enable repeatable stack onboarding with consistent routing, env handling, and persistence.
-- Support local and remote VM deployment with the same workflow.
+- One-command lifecycle: `make setup`, `make up`, `make down`.
+- Repeatable stack onboarding with consistent routing, env handling,
+  and persistence.
+- Same workflow for local laptop and remote VM deployment.
+- A lean default install (core stacks only) with optional stacks
+  available on request - see the README's Optional Stack Groups.
 
-## Non Goals
+## Non-Goals
 
 - No production SLA guarantees for hosted workloads.
-- No enterprise multi-tenant isolation model in this phase.
-- No Kubernetes runtime in this repository scope (Docker Compose based).
+- No enterprise multi-tenant isolation model.
+- No Kubernetes runtime in this repo's scope (Docker Compose based -
+  see `k3s-argocd-sandbox` for the Kubernetes/GitOps version).
 
 ## Success Criteria
 
-- A new contributor can launch the baseline lab in under 30 minutes.
-- New stack onboarding follows documented steps with no manual compose edits outside stack scope.
-- Critical stacks (Traefik, DB, observability) start and are reachable through configured domain strategy.
-
-## Stakeholders
-
-- Product/Platform: Internal Platform Engineering
-- Engineering: CloudOps / DevOps maintainers
-- Consumers: Engineers testing cloud-native tools and workflows
-
-## Assumptions
-
-- Docker and `make` are available on target hosts.
-- Domain strategy is provided (`nip.io` or public DNS).
-- Required environment variables are set through `.env` and stack templates.
+- A new user can go from clone to a running core lab in under 15
+  minutes, following only the README.
+- Onboarding a new stack needs no manual edits outside that stack's own
+  directory.
 
 ## Risks
 
-- Risk: Stack sprawl and inconsistent conventions as catalog grows.
-- Mitigation: Enforce stack onboarding checklist and validation tasks.
-- Risk: Secret leakage through misconfigured env files.
-- Mitigation: Keep templates in VCS, keep real `.env` out of VCS, run secret scanning.
+- Stack sprawl as the catalog grows - mitigated by the core/optional
+  split and the documented onboarding pattern in the README.
+- Secret leakage through misconfigured env files - mitigated by
+  templates staying in VCS, real `.env` staying out, and pre-commit
+  secret scanning.
 
-## Scope Summary
+## Notes
 
-- In scope: Compose stacks, unified ingress, database bootstrap, observability, onboarding workflow.
-- Out of scope: Production hardening runbooks for managed cloud services.
-
-## Functional Requirements
-
-- FR-001: Repository shall provide make targets for setup/up/down/status operations.
-- FR-002: New stack onboarding shall follow a documented, repeatable process under `stacks/<name>/`.
-- FR-003: Routing shall support wildcard host strategy via Traefik and configured domain.
-- FR-004: Database bootstrap shall support non-destructive sync for newly added services.
-- FR-005: Docs shall describe local and remote deployment flows.
-
-## Non-Functional Requirements
-
-- NFR-001: Setup path should be executable on macOS and Linux.
-- NFR-002: Core lifecycle commands should complete without manual per-stack intervention.
-- NFR-003: Secrets must not be committed in plaintext (`.env` ignored; templates only tracked).
-- NFR-004: Stack data should persist via named volumes.
-
-## References
-
-- README.md
-- CONTRIBUTING.md
-- Makefile
+- Domain strategy is provided by the user (`nip.io` for local/remote-IP
+  use, or a real domain via Cloudflare for Mode C/D).
+- Required environment variables are set through `.env` and stack
+  templates - see the README's "What You Edit" section.
