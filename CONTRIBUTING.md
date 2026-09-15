@@ -14,7 +14,7 @@ Use this repository to evolve a modular Docker Compose sandbox with consistent o
 
 - Follow the modular structure under `stacks/`.
 - For a new stack, add its folder, `docker-compose.yml`, and `.env.template`.
-- If a stack needs a database, wire provisioning through the documented PostgreSQL or MySQL init pattern.
+- If a stack needs a database, wire provisioning through the documented PostgreSQL init pattern.
 - Keep ingress labels consistent with the root README onboarding flow.
 
 ## Guardrails

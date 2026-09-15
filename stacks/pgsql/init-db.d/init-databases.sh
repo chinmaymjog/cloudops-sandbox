@@ -35,7 +35,6 @@ echo "🚀 Starting database initialization..."
 POSTGRES_USER="${POSTGRES_USER:-postgres}"
 
 # Create databases and users for each service
-create_user_and_database "keycloak" "keycloak" "${KEYCLOAK_DB_PASSWORD}"
 create_user_and_database "n8n" "n8n" "${N8N_DB_PASSWORD}"
 create_user_and_database "grafana" "grafana" "${GRAFANA_DB_PASSWORD}"
 
