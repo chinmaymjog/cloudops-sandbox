@@ -27,19 +27,17 @@ graph TD
     end
 
     subgraph "Modular Stacks"
-        App1[Keycloak Stack]
-        App2[n8n Stack]
-        App3[Monitoring Stack]
+        App1[n8n Stack]
+        App2[Monitoring Stack]
     end
 
     subgraph "Persistence Layer"
-        DB[(Shared PostgreSQL/MySQL)]
+        DB[(Shared PostgreSQL)]
         Vol[(Docker Named Volumes)]
     end
 
     Traefik --> App1
     Traefik --> App2
-    Traefik --> App3
     
     App1 --> DB
     App2 --> DB
@@ -49,7 +47,7 @@ graph TD
 ```
 
 #### 🏗️ Modular "Stacks"
-Instead of one massive, monolithic compose file, each tool (Keycloak, n8n, Prometheus) is its own **Stack**. They are isolated but connected via a unified `control-plane` network. This makes it trivial to add, remove, or swap tools without breaking the rest of the lab.
+Instead of one massive, monolithic compose file, each tool (n8n, Prometheus, Grafana) is its own **Stack**. They are isolated but connected via a unified `control-plane` network. This makes it trivial to add, remove, or swap tools without breaking the rest of the lab.
 
 #### 🛡️ Unified Ingress with Real SSL
 Accessing services via `localhost:8080` is a friction point. I integrated **Traefik** as a centralized gateway.
