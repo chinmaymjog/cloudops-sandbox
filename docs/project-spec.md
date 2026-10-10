@@ -13,8 +13,8 @@ down`) and a consistent ingress/domain model across every stack.
 - Repeatable stack onboarding with consistent routing, env handling,
   and persistence.
 - Same workflow for local laptop and remote VM deployment.
-- A lean default install (core stacks only) with optional stacks
-  available on request - see the README's Optional Stack Groups.
+- A lean default install (core and monitoring stacks) with optional
+  stacks available on request - see the README's Optional Stack Groups.
 
 ## Non-Goals
 
@@ -25,7 +25,7 @@ down`) and a consistent ingress/domain model across every stack.
 
 ## Success Criteria
 
-- A new user can go from clone to a running core lab in under 15
+- A new user can go from clone to a running default lab in under 15
   minutes, following only the README.
 - Onboarding a new stack needs no manual edits outside that stack's own
   directory.

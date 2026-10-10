@@ -334,8 +334,8 @@ make setup
 ```
 
 ### 5. Launch Stack
-Start the core lab (see [Optional Stack Groups](#-optional-stack-groups) to
-add Keycloak, MySQL, or Portainer/WUD):
+Start the default lab — core plus monitoring (see [Optional Stack
+Groups](#-optional-stack-groups) to add Keycloak, MySQL, or Portainer/WUD):
 ```bash
 make up
 ```
@@ -348,16 +348,24 @@ make status
 docker ps
 ```
 
-On a fresh install, wait until core services are `Up` before opening routes in the browser.
+On a fresh install, wait until the services are `Up` before opening routes in the browser.
+
+> **`cloudflared` will keep restarting until a tunnel token is set.** It
+> needs `CLOUDFLARE_TUNNEL_TOKEN` in `.env` (see Mode D). If you're not
+> using a Cloudflare Tunnel, a `Restarting` status for `cloudflared` is
+> expected and doesn't affect any other stack.
 
 ### 7. First Login (Recommended)
 Start with Traefik dashboard:
 - `https://traefik.<APP_DOMAIN>`
 
-Then verify core apps:
+Then verify the default apps:
 - `https://grafana.<APP_DOMAIN>`
-- `https://keycloak.<APP_DOMAIN>`
+- `https://prometheus.<APP_DOMAIN>`
 - `https://n8n.<APP_DOMAIN>`
+
+If you started the `management` group, also check
+`https://keycloak.<APP_DOMAIN>` and `https://portainer.<APP_DOMAIN>`.
 
 By default, the lab does not add Traefik basic auth in front of any routes. If you expose the lab outside a trusted network, add your own access controls before using it as a shared endpoint.
 
@@ -365,9 +373,12 @@ By default, the lab does not add Traefik basic auth in front of any routes. If y
 If you want a new install with new secrets, remove the existing deployment first:
 ```bash
 make down
-docker volume rm pgsql-data mysql-data grafana-data n8n-data portainer-data prometheus-data traefik-log traefik-certs
+docker volume rm -f pgsql-data mysql-data grafana-data n8n-data portainer-data prometheus-data traefik-log traefik-certs
 docker network rm control-plane
 ```
+
+`-f` makes `docker volume rm` skip volumes that don't exist, so the command
+succeeds even if you never started the optional groups.
 
 Then create a fresh `.env`, run `make setup`, and run `make up` again.
 
