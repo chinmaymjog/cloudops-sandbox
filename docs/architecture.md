@@ -14,8 +14,9 @@ and environment model. See the architecture diagram in `README.md`.
 - Each tool lives in its own `stacks/<name>/` directory with its own
   `docker-compose.yml` and `.env.template` - no monolithic compose file.
 - `make setup` regenerates every stack's `.env` from the root `.env` via
-  `scripts/setup.sh`; `make up` brings up core stacks (or more, via
-  `PROFILE=`) via `scripts/stacks-up.sh`.
+  `scripts/setup.sh`; `make up` brings up the core and monitoring stacks
+  (plus any optional groups named in `PROFILE=`) via
+  `scripts/stacks-up.sh`.
 - Shared Postgres/MySQL init scripts provision per-service databases and
   users on startup.
 - State persists via named Docker volumes.
@@ -57,6 +58,14 @@ and environment model. See the architecture diagram in `README.md`.
 
 ## Known Risks / Rough Edges
 
+- `cloudflared` is in the `core` profile but needs `CLOUDFLARE_TUNNEL_TOKEN`
+  to run. With no token it restarts in a loop (exit 255) on every default
+  `make up`. It's harmless to the other stacks but noisy; see
+  `docs/tasks.md`.
+- Compose exits with `no service selected` if every service in a file is
+  filtered out by profiles. `stacks-up.sh` checks each stack first and
+  skips it, so new stacks must carry a `profiles:` entry in a group the
+  scripts know about (`KNOWN_GROUPS` / `ALL_PROFILES`).
 - Broken stack env generation blocks startup at the setup phase (fail
   fast, not silent).
 - No Kubernetes runtime in scope - that's `k3s-argocd-sandbox`.
