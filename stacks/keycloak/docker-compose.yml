@@ -5,7 +5,7 @@ services:
     hostname: keycloak
     restart: unless-stopped
     profiles:
-      - identity
+      - management
     # ports:
     #   - "8080:8080"
     command: start-dev --import-realm
