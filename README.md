@@ -62,9 +62,9 @@ If you want to reinstall the lab, remove the existing containers and named volum
 
 ## 🏗️ Stack Catalog
 
-The lab is organized into modular stacks. **Core** stacks always start with
-`make up`; **optional** stacks are grouped behind Docker Compose profiles and
-only start when you ask for them — see [Optional Stack
+The lab is organized into modular stacks. **Core** and **monitoring** stacks
+start with every `make up`; **optional** stacks are grouped behind Docker
+Compose profiles and only start when you ask for them — see [Optional Stack
 Groups](#-optional-stack-groups) below.
 
 | Tier | Category | Tools | Description |
@@ -72,30 +72,32 @@ Groups](#-optional-stack-groups) below.
 | Core | Edge & Proxy | Traefik | Wildcard SSL and Auto-Discovery |
 | Core | Public Ingress | Cloudflared | Cloudflare Tunnel — exposes the lab publicly with no router port-forwarding |
 | Core | Databases | PostgreSQL | Stateful data persistence (backs Grafana and n8n) |
-| Core | Observability | Prometheus, Grafana | Metrics and Dashboards |
 | Core | Automation | n8n | Low-code workflow automation |
-| Optional (`identity`) | Identity | Keycloak | Identity and Access Management (OIDC/SAML) |
-| Optional (`db-admin`) | Databases | MySQL, Adminer, phpMyAdmin | A second DB engine plus web-based DB admin UIs |
-| Optional (`management`) | Management | Portainer, WUD | Container management UI and image-update notifications |
+| Default (`monitoring`) | Observability | Prometheus, Grafana | Metrics and Dashboards |
+| Optional (`management`) | Management | Keycloak, Portainer, WUD | Identity and Access Management (OIDC/SAML), container management UI, and image-update notifications |
+| Optional (`database`) | Databases | MySQL | A second DB engine alongside PostgreSQL |
 
 ### 🔀 Optional Stack Groups
 
-`make up` brings up only the core stacks above — a lean first run with
-fewer containers, fewer passwords to set, and less exposed surface. Add
-optional groups with the `PROFILE` variable (comma-separated, or `all` for
-everything):
+`make up` brings up the core and monitoring stacks above — a lean first
+run with fewer containers, fewer passwords to set, and less exposed surface.
+Add optional groups with the `PROFILE` variable (comma-separated, or `all`
+for everything). Core and monitoring are always included; `PROFILE` only
+adds to them:
 
 ```bash
-make up                              # core only
-make up PROFILE=identity             # core + Keycloak
-make up PROFILE=db-admin,management  # core + MySQL/Adminer/phpMyAdmin + Portainer/WUD
-make up PROFILE=all                  # everything
+make up                                # core + monitoring
+make up PROFILE=management             # + Keycloak, Portainer, WUD
+make up PROFILE=database,management    # + MySQL, Keycloak, Portainer, WUD
+make up PROFILE=all                    # everything
 ```
+
+An unknown group name stops with an error listing the valid ones.
 
 Re-running `make up` with a wider `PROFILE` on top of an already-running
 core setup is safe — it only starts what wasn't already up. `make down`
-always tears down everything, core and optional, regardless of what
-`PROFILE` was used to bring it up.
+always tears down everything, regardless of what `PROFILE` was used to
+bring it up.
 
 Optional groups still need their secrets set in `.env` before you request
 them the first time (`make gen-secrets` covers `MYSQL_ROOT_PASSWORD`,
@@ -304,9 +306,8 @@ Steps:
       whoever reaches it first claims that account.
    4. `prometheus.<APP_DOMAIN>` — no login at all, exposes internal
       metrics and service topology.
-   5. `keycloak.<APP_DOMAIN>` (the `/admin` console), `n8n.<APP_DOMAIN>`,
-      `adminer.<APP_DOMAIN>`, `phpmyadmin.<APP_DOMAIN>` — each has its own
-      login, but they're admin/automation/DB-credential surfaces and
+   5. `keycloak.<APP_DOMAIN>` (the `/admin` console) and `n8n.<APP_DOMAIN>` —
+      each has its own login, but they're admin/automation surfaces and
       shouldn't be left open to credential-stuffing regardless.
 
 ### Troubleshooting Mode D
@@ -334,7 +335,7 @@ make setup
 
 ### 5. Launch Stack
 Start the core lab (see [Optional Stack Groups](#-optional-stack-groups) to
-add Keycloak, MySQL/Adminer/phpMyAdmin, or Portainer/WUD):
+add Keycloak, MySQL, or Portainer/WUD):
 ```bash
 make up
 ```
@@ -421,10 +422,13 @@ networks:
         external: true
 ```
 
-A stack with no `profiles:` key is core and always starts with `make up`.
-To make it optional instead, add it to an existing group or a new one —
-e.g. `profiles: ["management"]` — and remember `scripts/stacks-down.sh`
-tears down unconditionally, so no changes are needed there.
+Give every service a `profiles:` entry: `core` to always start with
+`make up`, `monitoring` for the default observability set, or an opt-in
+group such as `management` or `database`. A service with no `profiles:` key
+also always starts. If you introduce a brand-new group name, add it to
+`KNOWN_GROUPS` in `scripts/stacks-up.sh` and to `ALL_PROFILES` in
+`scripts/stacks-down.sh` — otherwise `make up` rejects it and `make down`
+won't tear it down.
 
 #### 10.2 Add root variables
 
