@@ -37,8 +37,8 @@ and environment model. See the architecture diagram in `README.md`.
 
 - **Decision:** Keep the default stack set to what's good to get
   started - Traefik, Postgres, Grafana, Prometheus, n8n. Keycloak, a
-  second DB engine (MySQL, Adminer, phpMyAdmin), Portainer/WUD, and
-  Cloudflare Tunnel all live on the `advanced` branch instead.
+  second DB engine (MySQL), Portainer/WUD, and Cloudflare Tunnel all
+  live on the `advanced` branch instead.
   **Why:** A smaller default means fewer containers, fewer passwords to
   set, and less exposed surface for a first-time user.
   **Revisit if:** A genuinely common use case needs one of those by

@@ -70,11 +70,12 @@ The lab is organized into modular stacks:
 | **Automation** | n8n | Low-code workflow automation |
 
 This is the good-to-get-started set. Want Keycloak, a second DB engine
-(MySQL, Adminer, phpMyAdmin), Portainer/WUD, or Cloudflare Tunnel for
-public access without port-forwarding? Check out the [`advanced`
+(MySQL), Portainer/WUD, or Cloudflare Tunnel for public access without
+port-forwarding? Check out the [`advanced`
 branch](https://github.com/chinmaymjog/cloudops-sandbox/tree/advanced) -
-the same lab with those added, plus opt-in Docker Compose profiles for
-each so you don't pay for what you don't want by default.
+the same lab with those added, with the heavier extras (Keycloak, MySQL,
+Portainer/WUD) behind opt-in Docker Compose profiles so you don't pay for
+what you don't want by default.
 
 ---
 
