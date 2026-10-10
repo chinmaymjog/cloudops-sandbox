@@ -5,12 +5,12 @@ help:
 	@echo "================================================"
 	@echo "gen-secrets - Fill in random values for any password/key still at its template default"
 	@echo "setup    - Initialize network and generate .env files"
-	@echo "up       - Start core stacks (Traefik, Cloudflared, Postgres, n8n)"
+	@echo "up       - Start core stacks (Traefik, Cloudflared, Postgres, n8n, monitoring)"
 	@echo "           Add optional groups with PROFILE=<group1,group2,...> or PROFILE=all:"
 	@echo "             database - Postgres, MySQL"
 	@echo "             management - Keycloak, Portainer, WUD, n8n"
 	@echo "             monitoring - Grafana, Prometheus"
-	@echo "           e.g. make up PROFILE=identity,management"
+	@echo "           e.g. make up PROFILE=database,management"
 	@echo "down     - Stop all stacks (core and optional) and clean up"
 	@echo "status   - Show status of running containers"
 
@@ -31,7 +31,7 @@ status:
 		--filter name=traefik --filter name=cloudflared \
 		--filter name=postgresql --filter name=mysql \
 		--filter name=keycloak --filter name=n8n --filter name=grafana --filter name=prometheus \
-		--filter name=portainer --filter name=adminer --filter name=phpmyadmin --filter name=wud
+		--filter name=portainer --filter name=wud
 
 sync-dbs:
 	@bash scripts/sync-dbs.sh

@@ -13,7 +13,7 @@ set -Eeuo pipefail
 BASE_DIR=$(cd "$(dirname "$0")/.." && pwd)
 STACKS_DIR="$BASE_DIR/stacks"
 ROOT_ENV="$BASE_DIR/.env"
-ALL_PROFILES=(--profile identity --profile db-admin --profile management)
+ALL_PROFILES=(--profile core --profile monitoring --profile management --profile database)
 
 log() { printf '🛑 %s\n' "$*"; }
 
