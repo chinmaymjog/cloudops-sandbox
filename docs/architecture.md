@@ -45,12 +45,13 @@ and environment model. See the architecture diagram in `README.md`.
   ports/protocols per stack) is needed that a single wildcard route
   can't express.
 
-- **Decision:** Split stacks into a core set (always up) and opt-in
-  Docker Compose profiles (`identity`, `db-admin`, `management`) for
-  Keycloak, MySQL/Adminer/phpMyAdmin, and Portainer/WUD.
-  **Why:** `make up` used to bring up all 12 stacks unconditionally -
+- **Decision:** Split stacks into an always-on set (`core` plus
+  `monitoring`) and opt-in Docker Compose profiles (`management`,
+  `database`) for Keycloak, Portainer/WUD, and MySQL.
+  **Why:** `make up` used to bring up every stack unconditionally -
   more containers, more passwords to set, more exposed surface than
-  most first-time users need. Core-only is a much smaller first step.
+  most first-time users need. A small default set is a much smaller
+  first step.
   **Revisit if:** A group needs finer-grained selection than
   `PROFILE=<group1,group2>` comfortably supports.
 
