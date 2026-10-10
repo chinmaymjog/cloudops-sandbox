@@ -13,6 +13,8 @@ services:
       - control-plane
     labels:
       - traefik.enable=false
+    profiles:
+      - core
 
 networks:
   control-plane:

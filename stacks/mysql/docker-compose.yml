@@ -5,7 +5,7 @@ services:
     hostname: mysql
     restart: unless-stopped
     profiles:
-      - db-admin
+      - database
     # ports:
     #   - "3306:3306"
     volumes:

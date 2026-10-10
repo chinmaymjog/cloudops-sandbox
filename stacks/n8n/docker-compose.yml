@@ -34,6 +34,9 @@ services:
       - traefik.http.routers.n8n.entrypoints=websecure
       - traefik.http.routers.n8n.tls=true
       - traefik.http.services.n8n.loadbalancer.server.port=5678
+    profiles:
+      - core
+      - management
 
 networks:
   control-plane:

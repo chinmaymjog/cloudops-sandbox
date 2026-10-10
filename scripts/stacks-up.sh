@@ -27,8 +27,10 @@ if [[ -f "$ROOT_ENV" ]]; then
 fi
 
 PROFILE_ARGS=()
-if [[ "$PROFILE" == "all" ]]; then
-    PROFILE_ARGS=(--profile identity --profile db-admin --profile management)
+if [[ -z "$PROFILE" ]]; then
+    PROFILE_ARGS=(--profile core --profile monitoring)
+elif [[ "$PROFILE" == "all" ]]; then
+    PROFILE_ARGS=(--profile core --profile monitoring --profile management --profile database)
 elif [[ -n "$PROFILE" ]]; then
     IFS=',' read -ra profile_groups <<< "$PROFILE"
     for group in "${profile_groups[@]}"; do
