@@ -4,17 +4,18 @@
 
 A modular local-cloud sandbox for testing infrastructure components,
 observability stacks, and automation tools on a laptop or remote VM,
-with one-command lifecycle operations (`make setup`, `make up`, `make
-down`) and a consistent ingress/domain model across every stack.
+with simple, documented lifecycle commands (`make up`, `make down`) and a
+consistent ingress/domain model across every stack.
 
 ## Goals
 
-- One-command lifecycle: `make setup`, `make up`, `make down`.
+- Instructions over automation: every step is a command you can read and
+  run by hand; `make up` is a thin loop over `docker compose`.
 - Repeatable stack onboarding with consistent routing, env handling,
   and persistence.
 - Same workflow for local laptop and remote VM deployment.
-- A lean default install (core and monitoring stacks) with optional
-  stacks available on request - see the README's Optional Stack Groups.
+- `main` ships the core set (Traefik, PostgreSQL, Prometheus, Grafana,
+  n8n); `advanced` follows the same flow and adds more stacks.
 
 ## Non-Goals
 
@@ -27,13 +28,14 @@ down`) and a consistent ingress/domain model across every stack.
 
 - A new user can go from clone to a running default lab in under 15
   minutes, following only the README.
-- Onboarding a new stack needs no manual edits outside that stack's own
-  directory.
+- A new stack is defined in its own Compose file; shared runtime values live
+  in the root `.env`; new secrets and shared databases are added manually
+  using the README's OpenSSL and `docker exec` instructions.
 
 ## Risks
 
-- Stack sprawl as the catalog grows - mitigated by the core/optional
-  split and the documented onboarding pattern in the README.
+- Stack sprawl as the catalog grows - mitigated by keeping `main` small
+  and the "Add a Service" steps in the README.
 - Secret leakage through misconfigured env files - mitigated by
   templates staying in VCS, real `.env` staying out, and pre-commit
   secret scanning.
@@ -42,5 +44,6 @@ down`) and a consistent ingress/domain model across every stack.
 
 - Domain strategy is provided by the user (`nip.io` for local/remote-IP
   use, or a real domain via Cloudflare for Mode C/D).
-- Required environment variables are set through `.env` and stack
-  templates - see the README's "What You Edit" section.
+- Required environment variables are set through the root `.env` and
+  referenced directly from each stack's Compose YAML. New secret values are
+  generated with OpenSSL.

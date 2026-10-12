@@ -1,535 +1,274 @@
 # ☁️ CloudOps-Sandbox
 ## A Production-Grade Local Cloud Architecture
 
-A modular, automated infrastructure sandbox for testing cloud-native stacks, observability, and automation tools on your laptop or a remote VM.
+A modular infrastructure sandbox for testing cloud-native stacks, observability, and automation tools on your laptop or a remote VM.
 
 > [!TIP]
-> This lab mimics a production cloud environment with modular stacks and unified ingress.
+> Every stack is a plain Docker Compose file. Nothing is generated or hidden:
+> you copy one `.env`, run a few commands, and `make up`.
 
 ## 🏗️ Architecture: The "Local Cloud" Design
 
-Unlike standard local labs, **CloudOps-Sandbox** is built with a platform engineering mindset. It separates ingress, control-plane logic, and modular application stacks.
+Traefik is the single entry point, every tool lives in its own stack, and
+they all share one Docker network (`control-plane`) and one PostgreSQL server.
 
 ```mermaid
 graph TD
     User([User]) -->|HTTPS / *.nip.io| Traefik[Traefik Ingress Gateway]
-    
+
     subgraph "Control Plane Network"
         Traefik
         DNS[Cloudflare / Let's Encrypt]
     end
 
     subgraph "Modular Stacks"
-        App1[Keycloak Stack]
-        App2[n8n Stack]
-        App3[Monitoring Stack]
+        App1[n8n Stack]
+        App2[Monitoring Stack]
+        App3[Management Stack]
     end
 
     subgraph "Persistence Layer"
-        DB[(Shared Postgres/Redis)]
+        DB[(PostgreSQL)]
         Vol[(Docker Named Volumes)]
     end
 
     Traefik --> App1
     Traefik --> App2
     Traefik --> App3
-    
+
     App1 --> DB
     App2 --> DB
-    
+
     App1 --> Vol
     App2 --> Vol
+    App3 --> Vol
 ```
 
-## 🚀 Overview
+## 🏗️ Stacks
 
-This lab provides a "Sandboxed" environment that mimics a production cloud setup. It allows for the rapid deployment of stateful tools and management stacks using Docker and Traefik as a unified entry point.
+Each folder under `stacks/` is one stack: a `docker-compose.yml` (plus a
+`conf/` folder where the tool needs a config file). All of them read their
+values from the one root `.env`.
+
+| Stack | URL | What it is |
+| :--- | :--- | :--- |
+| `traefik` | `https://traefik.<APP_DOMAIN>` | Ingress and TLS for everything else |
+| `pgsql` | — (internal only) | Shared PostgreSQL server |
+| `prometheus` | `https://prometheus.<APP_DOMAIN>` | Metrics |
+| `grafana` | `https://grafana.<APP_DOMAIN>` | Dashboards (stores its data in PostgreSQL) |
+| `n8n` | `https://n8n.<APP_DOMAIN>` | Workflow automation (stores its data in PostgreSQL) |
+| `portainer` | `https://portainer.<APP_DOMAIN>` | Container management UI |
+| `wud` | `https://wud.<APP_DOMAIN>` | Image-update notifications |
+| `cloudflared` | — | Cloudflare Tunnel, optional — see [Access Modes](docs/access-modes.md#mode-d-cloudflare-tunnel-no-port-forwarding) |
+
+`make up` starts the stacks named on the `STACKS` line of the `Makefile`
+(everything above except `cloudflared`).
 
 ## 📋 Prerequisites
 
-### System Requirements
-*   **Operating System**: macOS or Linux.
-*   **Docker**: Docker Desktop (Mac) or Docker Engine (Linux).
-*   **Tools**: `git`, `docker`, `docker compose`, `make`, `envsubst` (via `gettext` package on Linux), `openssl` (used by `make gen-secrets`; preinstalled on macOS and most Linux distros).
-*   **CPU**: Modern `x86_64` recommended. Some upstream images, especially newer MySQL and Keycloak releases, may require `x86-64-v2` support. If your host is older, pin compatible image tags before first boot.
-
-### Supported Install Mode
-This repository is documented and supported for **fresh installs**.
-
-If you want to reinstall the lab, remove the existing containers and named volumes first, then generate a new `.env` and install again. Reusing old volumes with new secrets is not part of the default workflow.
-
----
-
-## 🏗️ Stack Catalog
-
-The lab is organized into modular stacks. **Core** and **monitoring** stacks
-start with every `make up`; **optional** stacks are grouped behind Docker
-Compose profiles and only start when you ask for them — see [Optional Stack
-Groups](#-optional-stack-groups) below.
-
-| Tier | Category | Tools | Description |
-| :--- | :--- | :--- | :--- |
-| Core | Edge & Proxy | Traefik | Wildcard SSL and Auto-Discovery |
-| Core | Public Ingress | Cloudflared | Cloudflare Tunnel — exposes the lab publicly with no router port-forwarding |
-| Core | Databases | PostgreSQL | Stateful data persistence (backs Grafana and n8n) |
-| Core | Automation | n8n | Low-code workflow automation |
-| Default (`monitoring`) | Observability | Prometheus, Grafana | Metrics and Dashboards |
-| Optional (`management`) | Management | Keycloak, Portainer, WUD | Identity and Access Management (OIDC/SAML), container management UI, and image-update notifications |
-| Optional (`database`) | Databases | MySQL | A second DB engine alongside PostgreSQL |
-
-### 🔀 Optional Stack Groups
-
-`make up` brings up the core and monitoring stacks above — a lean first
-run with fewer containers, fewer passwords to set, and less exposed surface.
-Add optional groups with the `PROFILE` variable (comma-separated, or `all`
-for everything). Core and monitoring are always included; `PROFILE` only
-adds to them:
-
-```bash
-make up                                # core + monitoring
-make up PROFILE=management             # + Keycloak, Portainer, WUD
-make up PROFILE=database,management    # + MySQL, Keycloak, Portainer, WUD
-make up PROFILE=all                    # everything
-```
-
-An unknown group name stops with an error listing the valid ones.
-
-Re-running `make up` with a wider `PROFILE` on top of an already-running
-core setup is safe — it only starts what wasn't already up. `make down`
-always tears down everything, regardless of what `PROFILE` was used to
-bring it up.
-
-Optional groups still need their secrets set in `.env` before you request
-them the first time (`make gen-secrets` covers `MYSQL_ROOT_PASSWORD`,
-`KEYCLOAK_ADMIN_PASSWORD`, `KEYCLOAK_DB_PASSWORD` the same way as core
-secrets — you just don't need to have filled them in if you never bring
-those stacks up).
-
----
+- macOS or Linux
+- Docker Desktop (Mac) or Docker Engine (Linux), with `docker compose`
+- `git`, `make`, `openssl`
+- A modern `x86_64` or `arm64` CPU
 
 ## 🛠️ Quick Start
 
-Start here if you just want the working path:
+### 1. Get the code
 
-1. clone the repo
-2. copy `.env`
-3. run `make gen-secrets` to fill in random passwords/keys
-4. run `make setup`
-5. run `make up`
-6. run `make status`
-
-### What You Edit
-
-Only edit these files for normal setup and customization:
-
-- `.env`
-- `.env.template`
-- `stacks/<app-name>/.env.template`
-- `stacks/<app-name>/docker-compose.yml`
-
-Do not assume any generated env file needs manual edits. Re-run `make setup` after changing templates or root env values.
-
-Two stacks also ship a hand-edited (not templated) config file for advanced tuning:
-`stacks/traefik/conf/traefik.yml` (e.g. the ACME registration email) and
-`stacks/prometheus/conf/prometheus.yml` (scrape targets). Changes to these take
-effect on the next `docker compose ... up -d` — no `make setup` needed.
-
-### 1. Get The Code
-Clone the repository locally with HTTPS:
 ```bash
 git clone https://github.com/chinmaymjog/cloudops-sandbox.git
 cd cloudops-sandbox
 ```
 
-Note: this repository must be readable from the target machine. If HTTPS clone prompts for GitHub credentials, use an account that has access to the repository or use an SSH clone URL with a configured GitHub key.
+Fork first if you want to keep your own changes.
 
-If you plan to customize the lab and keep your own changes, fork first and clone your fork instead.
-If you already use GitHub SSH keys on the target machine, you can use the SSH clone URL instead.
+### 2. Create `.env`
 
-> [!IMPORTANT]
-> `APP_DOMAIN` and any app-specific secret values must be present before `make up`.
-> If you add a new stack, wire its variables through the stack template first, then regenerate with `make setup`.
-
-### 2. Initialize Environment
-Copy the global template:
 ```bash
 cp .env.template .env
 ```
 
-Then fill in random values for every password/key still at its placeholder default:
-```bash
-make gen-secrets
-```
-This only touches values that still match the `.env.template` default, so it's
-safe to run again later — anything you've already customized is left alone.
-It covers `POSTGRES_PASSWORD`, `N8N_DB_PASSWORD`, `GRAFANA_DB_PASSWORD`,
-`GRAFANA_ADMIN_PASSWORD`, `MYSQL_ROOT_PASSWORD`, `N8N_ENCRYPTION_KEY`,
-`KEYCLOAK_ADMIN_PASSWORD`, and `KEYCLOAK_DB_PASSWORD`. It does not touch
-`APP_DOMAIN`, image tags, or any Cloudflare credentials — those come from you
-or your Cloudflare account, not from a generator.
+Replace each placeholder in `.env` with its own random value:
+
+| Variable | Generate with |
+| :--- | :--- |
+| `POSTGRES_PASSWORD` | `openssl rand -hex 16` |
+| `N8N_DB_PASSWORD` | `openssl rand -hex 16` |
+| `GRAFANA_DB_PASSWORD` | `openssl rand -hex 16` |
+| `GRAFANA_ADMIN_PASSWORD` | `openssl rand -hex 16` |
+| `N8N_ENCRYPTION_KEY` | `openssl rand -hex 32` |
+
+`APP_DOMAIN=127.0.0.1.nip.io` works as-is on a laptop. For a remote VM or
+your own domain, see [Access Modes](docs/access-modes.md).
 
 > [!IMPORTANT]
-> `GRAFANA_ADMIN_PASSWORD` only takes effect on Grafana's first boot. If
-> Grafana has already started once (even with the placeholder value, which
-> means it's running on the well-known default `admin`/`admin`), changing
-> this env var and recreating the container will **not** change an
-> already-created admin account's password. Fix a running instance with
+> `GRAFANA_ADMIN_PASSWORD` only takes effect on Grafana's first boot. Set it
+> before your first `make up`. To change it later:
 > `docker exec grafana grafana-cli admin reset-admin-password <new-password>`.
 
-### 3. Choose Setup Mode
+### 3. Start PostgreSQL and create the app databases
 
-#### Mode A (Recommended): Local Laptop with nip.io
-`APP_DOMAIN=127.0.0.1.nip.io` is already the `.env.template` default. Run
-`make gen-secrets` (see step 2 above) to fill in the required passwords/keys:
-- `POSTGRES_PASSWORD`
-- `N8N_DB_PASSWORD`
-- `GRAFANA_DB_PASSWORD`
-- `GRAFANA_ADMIN_PASSWORD`
-- `MYSQL_ROOT_PASSWORD`
-- `N8N_ENCRYPTION_KEY`
-- `KEYCLOAK_ADMIN` (username, not generated — defaults to `admin`)
-- `KEYCLOAK_ADMIN_PASSWORD`
-- `KEYCLOAK_DB_PASSWORD`
+n8n and Grafana each need their own database and user. Start PostgreSQL on
+its own, wait until it accepts connections, then create them:
 
-Expected access examples:
-- `https://grafana.127.0.0.1.nip.io`
-- `https://keycloak.127.0.0.1.nip.io`
-- `https://n8n.127.0.0.1.nip.io`
-
-Note: nip.io mode is for routing convenience, not trusted public TLS. Traefik will serve a default certificate in this mode, so browser certificate warnings are expected.
-
-#### Mode B: Remote VM with nip.io
-Set in `.env`:
-- `APP_DOMAIN=<VM_PUBLIC_IP>.nip.io`
-- Same secret values as Mode A
-
-VM preflight:
-1. Open inbound ports `80` and `443` on the VM firewall/security group.
-2. Ensure Docker is running.
-
-Expected access examples:
-- `https://grafana.<VM_PUBLIC_IP>.nip.io`
-- `https://keycloak.<VM_PUBLIC_IP>.nip.io`
-- `https://n8n.<VM_PUBLIC_IP>.nip.io`
-
-Note: as with local nip.io mode, browser certificate warnings are expected. Use Mode C if you need publicly trusted certificates.
-
-#### Mode C (Optional Advanced): Public Domain with Cloudflare
-Use this mode only if you want DNS-challenge based certificates.
-
-Set in `.env`:
-- `APP_DOMAIN=lab.yourdomain.com`
-- `CF_API_EMAIL` (uncomment in `.env.template`)
-- `CF_DNS_API_TOKEN` (uncomment in `.env.template`)
-- Same secret values as Mode A
-
-DNS preflight:
-1. Create wildcard DNS record `*.lab.yourdomain.com` to `127.0.0.1` (local) or VM public IP (remote).
-2. Token permissions should include DNS edit capability for the zone.
-
-#### Mode D (Recommended for home/laptop use): Cloudflare Tunnel, no port-forwarding
-
-Use this mode when the lab runs on a home laptop/server behind NAT/CGNAT and you
-don't want to open any inbound ports on your router. `cloudflared` makes an
-outbound-only connection to Cloudflare's edge; Cloudflare terminates public TLS
-and forwards matched requests down the tunnel to Traefik over the internal
-`control-plane` Docker network. Traefik still does its own host-based routing
-and TLS (Mode C's DNS-01 cert), so `cloudflared` just forwards to
-`https://traefik:443` — no new per-app config is needed as you onboard stacks.
-
-Set the same values as Mode C (`APP_DOMAIN`, `CF_API_EMAIL`, `CF_DNS_API_TOKEN`
-for the wildcard cert), plus:
-- `CLOUDFLARE_TUNNEL_TOKEN` (uncomment in `.env.template`)
-
-> [!IMPORTANT]
-> `APP_DOMAIN` must be your zone apex (e.g. `yourdomain.com`) or, at most,
-> one label deep — **not** a subdomain like `tools.yourdomain.com`.
-> Cloudflare's free Universal SSL only covers the apex and its direct
-> first-level wildcard (`*.yourdomain.com`); it does **not** cover a second
-> -level wildcard like `*.tools.yourdomain.com`. Using a subdomain there
-> makes the Cloudflare edge itself unable to complete TLS for any of your
-> service hostnames (symptom: `curl`/browser fails at the TLS handshake,
-> before ever reaching your tunnel) — fixable only by paying for Advanced
-> Certificate Manager, or by dropping down to the apex/first level instead.
-
-Steps:
-1. In the [Zero Trust dashboard](https://one.dash.cloudflare.com/) go to
-   **Networks -> Tunnels -> Create a tunnel**, choose **Cloudflared**, name it
-   (e.g. `cloudops-sandbox`), and pick the **Docker** connector. Copy the
-   token shown in the install command (the long string after `--token`) into
-   `CLOUDFLARE_TUNNEL_TOKEN` in `.env`.
-2. Still in the tunnel's **Public Hostname** tab, add one route:
-   - Subdomain: `*`
-   - Domain: your `APP_DOMAIN` (e.g. `lab.yourdomain.com`)
-   - Type: `HTTPS`
-   - URL: `traefik:443`
-   - Leave **HTTP Host Header** unset so Traefik still sees the real
-     subdomain and can route by `Host()` rule.
-   This single wildcard route covers every current and future stack — no
-   dashboard changes needed when you add a new app in step 10 below.
-3. Cloudflare cannot auto-create a DNS record for a wildcard (`*`) Public
-   Hostname — the dashboard will warn "no DNS record will be created" when
-   you save step 2. Save it anyway (it still configures the tunnel's
-   routing), then add the record yourself: regular Cloudflare dashboard ->
-   your zone -> **DNS -> Records -> Add record** -> Type `CNAME`, Name `*`
-   (just the asterisk — Cloudflare appends the zone name itself; typing
-   `*.yourdomain.com` here creates the broken `*.yourdomain.com.yourdomain.com`
-   and silently doesn't work), Target `<TUNNEL_UUID>.cfargotunnel.com` (the
-   UUID is on the tunnel's page in the Zero Trust dashboard — **not** the
-   Connector ID shown in the same area, which is a different value and
-   won't route), Proxy status **Proxied** (orange cloud — required,
-   DNS-only won't route through the tunnel). No ports need to be open on
-   your router/firewall at all.
-4. On the same route, expand **Additional application settings -> TLS**
-   and turn on **Match SNI to Host** (or, if your dashboard doesn't have
-   that toggle, set **Origin Server Name** to any hostname under
-   `APP_DOMAIN`, e.g. `traefik.${APP_DOMAIN}`). Without this, `cloudflared`
-   sends no SNI when it connects to `https://traefik:443`, so Traefik can't
-   match its real wildcard cert and falls back to its self-signed default
-   — which `cloudflared` then refuses to verify. Symptom: `cloudflared`
-   logs `tls: failed to verify certificate: ... valid for ...traefik.default,
-   not traefik` and every request 502s, even though DNS and the tunnel
-   connection are both fine.
-5. **Do this before telling anyone else the URL.** In **Access ->
-   Applications**, add an application per hostname with a policy allowing
-   only your own email — free for a handful of users on Cloudflare's Zero
-   Trust free plan, and it gates the request before it ever reaches the
-   container. Priority order, highest risk first:
-   1. `traefik.<APP_DOMAIN>` — the dashboard has no login of its own in
-      this repo's default setup (see the basic-auth note under "First
-      Login" below).
-   2. `grafana.<APP_DOMAIN>` — **check this one is not still on the
-      default `admin`/`admin` login** (see the `GRAFANA_ADMIN_PASSWORD`
-      note in step 2) before leaving it reachable at all.
-   3. `portainer.<APP_DOMAIN>` — full Docker daemon control once logged
-      in; if you haven't completed Portainer's first-run admin setup yet,
-      whoever reaches it first claims that account.
-   4. `prometheus.<APP_DOMAIN>` — no login at all, exposes internal
-      metrics and service topology.
-   5. `keycloak.<APP_DOMAIN>` (the `/admin` console) and `n8n.<APP_DOMAIN>` —
-      each has its own login, but they're admin/automation surfaces and
-      shouldn't be left open to credential-stuffing regardless.
-
-### Troubleshooting Mode D
-
-- **Cloudflare error 1033** with a tunnel that's otherwise connected and
-  healthy almost always means the DNS record's Target doesn't actually
-  point at the tunnel serving your Public Hostname route — recheck the
-  UUID in the record against `docker logs cloudflared | grep tunnelID`
-  on your host, not just what you think you copied.
-- **`cloudflared` logs show a config version that doesn't advance** after
-  you save a dashboard change: `docker restart cloudflared` — it fetches
-  the current config fresh on reconnect, sidestepping any stuck
-  push-notification.
-- If you created more than one tunnel while troubleshooting, make sure
-  `CLOUDFLARE_TUNNEL_TOKEN` in `.env`, the DNS record's Target, and the
-  Public Hostname route are all for the *same* tunnel ID — mixing an old
-  token with a new tunnel's DNS record (or vice versa) produces 1033 with
-  no other symptom.
-
-### 4. Setup Infrastructure
-Generate stack env files and network:
 ```bash
-make setup
+make up STACKS=pgsql
+until docker exec postgresql pg_isready -h localhost -U postgres; do sleep 1; done
+
+set -a; source .env; set +a   # load the passwords from .env into this shell
+
+docker exec postgresql psql -U postgres \
+  -c "CREATE USER n8n WITH PASSWORD '$N8N_DB_PASSWORD';" \
+  -c "CREATE DATABASE n8n OWNER n8n;"
+
+docker exec postgresql psql -U postgres \
+  -c "CREATE USER grafana WITH PASSWORD '$GRAFANA_DB_PASSWORD';" \
+  -c "CREATE DATABASE grafana OWNER grafana;"
 ```
 
-### 5. Launch Stack
-Start the default lab — core plus monitoring (see [Optional Stack
-Groups](#-optional-stack-groups) to add Keycloak, MySQL, or Portainer/WUD):
+You only do this once. The databases live in the `pgsql-data` volume and
+survive `make down`.
+
+### 4. Start everything
+
+```bash
+make up
+make status
+```
+
+The first run takes a few minutes while Docker pulls images. Then open:
+
+- `https://traefik.127.0.0.1.nip.io`
+- `https://grafana.127.0.0.1.nip.io`
+- `https://n8n.127.0.0.1.nip.io`
+
+If n8n or Grafana shows `Restarting` and `docker logs <name>` says
+`password authentication failed`, step 3 was skipped — run it, and the
+container recovers on its own.
+
+nip.io uses a self-signed certificate, so a browser warning is expected.
+There is no login in front of the Traefik dashboard — don't expose the lab
+outside a trusted network without adding access control (see
+[Access Modes](docs/access-modes.md), Mode D step 6).
+
+## ➕ Add a Service
+
+Four steps, using [`traefik/whoami`](https://github.com/traefik/whoami) as the
+example. Swap in your own image, name and port.
+
+### 1. Write the Compose file
+
+`stacks/whoami/docker-compose.yml`:
+
+```yaml
+services:
+  whoami:
+    image: traefik/whoami:${WHOAMI_TAG}
+    container_name: whoami
+    restart: unless-stopped
+    networks:
+      - control-plane
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.whoami.rule=Host(`whoami.${APP_DOMAIN}`)
+      - traefik.http.routers.whoami.entrypoints=websecure
+      - traefik.http.routers.whoami.tls=true
+      - traefik.http.services.whoami.loadbalancer.server.port=80
+
+networks:
+  control-plane:
+    external: true
+```
+
+- Every `${VAR}` comes from the root `.env`.
+- The `traefik.*` labels give it `https://whoami.<APP_DOMAIN>`; change the
+  `port=` to the port the app listens on inside the container.
+- If it keeps data, add a named volume — copy the `volumes:` pattern from
+  `stacks/n8n/docker-compose.yml`.
+
+### 2. Add its values to `.env`
+
+```dotenv
+WHOAMI_TAG=v1.11.0
+```
+
+Need a password or key? Generate it with `openssl rand -hex 16` (or `-hex 32`)
+and add it here too. If you're committing the stack, add the same variable
+names with placeholder values to `.env.template`.
+
+### 3. Create its database (only if it uses PostgreSQL)
+
+Same commands as Quick Start step 3, with your app's name and password
+variable:
+
+```bash
+set -a; source .env; set +a
+docker exec postgresql psql -U postgres \
+  -c "CREATE USER myapp WITH PASSWORD '$MYAPP_DB_PASSWORD';" \
+  -c "CREATE DATABASE myapp OWNER myapp;"
+```
+
+Point the app at host `postgresql`, port `5432`, database and user `myapp`.
+
+### 4. Start it
+
+Add `whoami` to the end of the `STACKS` line in the `Makefile`, then:
+
 ```bash
 make up
 ```
 
-The first boot can take a few minutes because Docker may need to pull multiple images.
+Or start just this one stack, without touching the Makefile:
 
-### 6. Verify Health
 ```bash
-make status
-docker ps
+make up STACKS=whoami
+# same as: docker compose --env-file .env -f stacks/whoami/docker-compose.yml up -d
 ```
 
-On a fresh install, wait until the services are `Up` before opening routes in the browser.
+Check it:
 
-> **`cloudflared` will keep restarting until a tunnel token is set.** It
-> needs `CLOUDFLARE_TUNNEL_TOKEN` in `.env` (see Mode D). If you're not
-> using a Cloudflare Tunnel, a `Restarting` status for `cloudflared` is
-> expected and doesn't affect any other stack.
+```bash
+docker logs --tail 50 whoami
+curl -k https://whoami.127.0.0.1.nip.io
+```
 
-### 7. First Login (Recommended)
-Start with Traefik dashboard:
-- `https://traefik.<APP_DOMAIN>`
+### Removing a service
 
-Then verify the default apps:
-- `https://grafana.<APP_DOMAIN>`
-- `https://prometheus.<APP_DOMAIN>`
-- `https://n8n.<APP_DOMAIN>`
+```bash
+docker compose --env-file .env -f stacks/whoami/docker-compose.yml down
+```
 
-If you started the `management` group, also check
-`https://keycloak.<APP_DOMAIN>` and `https://portainer.<APP_DOMAIN>`.
+Then delete `stacks/whoami/`, remove it from `STACKS`, and drop its
+variables from `.env`. If it had a database:
 
-By default, the lab does not add Traefik basic auth in front of any routes. If you expose the lab outside a trusted network, add your own access controls before using it as a shared endpoint.
+```bash
+docker exec postgresql psql -U postgres -c "DROP DATABASE myapp;" -c "DROP USER myapp;"
+```
 
-### 8. Reinstall Cleanly
-If you want a new install with new secrets, remove the existing deployment first:
+## 🧰 Everyday Commands
+
+```bash
+make up                  # start the stacks on the STACKS line
+make up STACKS=n8n       # start (or recreate) one stack
+make down                # stop every stack; data volumes are kept
+make status              # running containers
+docker logs -f <name>    # follow one container's logs
+```
+
+After editing a stack's `docker-compose.yml` or its values in `.env`, run
+`make up` again — Compose recreates only what changed.
+
+### Start over from scratch
+
+This deletes all data:
+
 ```bash
 make down
-docker volume rm -f pgsql-data mysql-data grafana-data n8n-data portainer-data prometheus-data traefik-log traefik-certs
+docker volume rm -f pgsql-data grafana-data n8n-data portainer-data prometheus-data traefik-log traefik-certs
 docker network rm control-plane
 ```
 
-`-f` makes `docker volume rm` skip volumes that don't exist, so the command
-succeeds even if you never started the optional groups.
-
-Then create a fresh `.env`, run `make setup`, and run `make up` again.
-
-### 9. Database Syncing
-This is optional and only needed when you add or change a DB-backed app.
-
-If you add a new DB-backed app while the lab is already running, run:
-```bash
-make sync-dbs
-```
-This safely provisions new databases and users without restarting the DB engine.
-
-### 10. Onboard a New Stack/App
-
-Use this flow for any new stack under `stacks/<app-name>/`.
-
-#### 10.1 Create stack files
-
-Create a new folder and add these templates:
-
-`stacks/<app-name>/.env.template`
-```env
-# Example app runtime config
-APP_TAG=${APP_TAG}
-APP_DOMAIN=${APP_DOMAIN}
-APP_DB_PASSWORD=${APP_DB_PASSWORD}
-```
-
-`stacks/<app-name>/docker-compose.yml`
-```yaml
-services:
-    <app-name>:
-        image: <image-repo>:${APP_TAG}
-        container_name: <app-name>
-        restart: unless-stopped
-        env_file:
-            - .env
-        environment:
-            APP_DOMAIN: ${APP_DOMAIN}
-            APP_DB_PASSWORD: ${APP_DB_PASSWORD}
-        labels:
-            - "traefik.enable=true"
-            - "traefik.http.routers.<app-name>.rule=Host(`<app-name>.${APP_DOMAIN}`)"
-            - "traefik.http.routers.<app-name>.entrypoints=websecure"
-            - "traefik.http.routers.<app-name>.tls=true"
-            - "traefik.http.services.<app-name>.loadbalancer.server.port=80"
-        networks:
-            - control-plane
-
-networks:
-    control-plane:
-        external: true
-```
-
-Give every service a `profiles:` entry: `core` to always start with
-`make up`, `monitoring` for the default observability set, or an opt-in
-group such as `management` or `database`. A service with no `profiles:` key
-also always starts. If you introduce a brand-new group name, add it to
-`KNOWN_GROUPS` in `scripts/stacks-up.sh` and to `ALL_PROFILES` in
-`scripts/stacks-down.sh` — otherwise `make up` rejects it and `make down`
-won't tear it down.
-
-#### 10.2 Add root variables
-
-In root `.env`, add only variables your new stack needs, for example:
-
-```env
-APP_TAG=latest
-APP_DB_PASSWORD=<strong-password>
-```
-
-#### 10.3 Regenerate stack env files and start app
-
-Any stack with `docker-compose.yml` is automatically picked up by startup scripts.
-
-```bash
-make setup
-docker compose -f stacks/<app-name>/docker-compose.yml up -d
-```
-
-Or launch all stacks:
-
-```bash
-make up
-```
-
-#### 10.4 Verify app
-
-```bash
-docker ps --format '{{.Names}}\t{{.Status}}' | grep <app-name>
-docker logs --tail 100 <app-name>
-```
-
-If you added Traefik labels, verify:
-
-- `https://<app-name>.<APP_DOMAIN>`
-
-#### 10.5 DB-backed app extension (PostgreSQL/MySQL)
-
-If the app needs a new DB/user, wire the password through DB runtime and init script.
-
-PostgreSQL:
-
-1. Add password key in root `.env` (example: `DEMO_DB_PASSWORD=...`).
-2. Add `DEMO_DB_PASSWORD=$DEMO_DB_PASSWORD` to `stacks/pgsql/.env.template`.
-3. Add `DEMO_DB_PASSWORD: ${DEMO_DB_PASSWORD}` to `stacks/pgsql/docker-compose.yml` under postgres `environment`.
-4. Add provisioning line in `stacks/pgsql/init-db.d/init-databases.sh`:
-     - `create_user_and_database "demo" "demo" "${DEMO_DB_PASSWORD}"`
-5. Apply without resetting DB volumes:
-
-```bash
-make setup
-make sync-dbs
-```
-
-6. Validate:
-
-```bash
-docker exec -i postgresql psql -U postgres -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='demo';"
-docker exec -i postgresql psql -U postgres -d postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='demo';"
-```
-
-MySQL follows the same pattern with:
-
-- `stacks/mysql/.env.template`
-- `stacks/mysql/docker-compose.yml`
-- `stacks/mysql/init-db.d/init-databases.sh`
-
----
-
-## 🔌 Optional Integrations
-
-WUD Slack notifications are optional.
-These variables are commented out in `.env.template` by default.
-Only uncomment/configure them if you want Slack alerts for image updates:
-- `WUD_TRIGGER_SLACK_SUPPORT_TOKEN`
-- `WUD_TRIGGER_SLACK_SUPPORT_CHANNEL`
-- `WUD_TRIGGER_SLACK_SUPPORT_THRESHOLD`
-
----
-
-## 🧰 Helpful Commands
-
-```bash
-make gen-secrets # fill in random values for any password/key still at its template default
-make setup      # regenerate stack env files
-make up         # start all stacks
-make down       # stop all stacks
-make status     # container status snapshot
-make sync-dbs   # sync postgres/mysql users and databases
-```
+Then follow the Quick Start again from step 2.
 
 ---
 *Maintained by [Chinmay Jog](https://github.com/chinmaymjog) | 📖 [Read my articles on Medium](https://medium.com/@chinmaymjog)*
