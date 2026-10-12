@@ -13,9 +13,10 @@ Use this repository to evolve a modular Docker Compose sandbox with consistent o
 ## Repo-Specific Guidance
 
 - Follow the modular structure under `stacks/`.
-- For a new stack, add its folder, `docker-compose.yml`, and `.env.template`.
-- If a stack needs a database, wire provisioning through the documented PostgreSQL init pattern.
-- Keep ingress labels consistent with the root README onboarding flow.
+- For a new stack, follow the README's "Add a Service" steps: a folder with a `docker-compose.yml`, its variables in `.env.template`, and its name on the `STACKS` line in the `Makefile`.
+- For a shared PostgreSQL database, use the README's `docker exec` commands - there is no init script.
+- Prefer a documented command over a new script. If something needs automating, it should be obviously simpler than the commands it replaces.
+- Keep ingress labels consistent with the existing stacks.
 
 ## Guardrails
 
@@ -28,8 +29,7 @@ Use this repository to evolve a modular Docker Compose sandbox with consistent o
 
 Before opening a Pull Request:
 
-- run `make setup`
-- validate the affected stack with `make up` or a targeted `docker compose` run
+- validate the affected stack with `make up STACKS=<name>` from a fresh `.env`
 - confirm routing/logs for the affected service
 - review the diff for scope and secret safety
 
