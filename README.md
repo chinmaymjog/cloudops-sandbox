@@ -1,120 +1,55 @@
 # ☁️ CloudOps-Sandbox
-## A Production-Grade Local Cloud Architecture
 
-A modular infrastructure sandbox for testing cloud-native stacks, observability, and automation tools on your laptop or a remote VM.
-
-> [!TIP]
-> Every stack is a plain Docker Compose file. Nothing is generated or hidden:
-> you copy one `.env`, run a few commands, and `make up`.
-
-## 🏗️ Architecture: The "Local Cloud" Design
-
-Traefik is the single entry point, every tool lives in its own stack, and
-they all share one Docker network (`control-plane`) and one PostgreSQL server.
+A local cloud lab on Docker Compose: one Traefik entry point, one PostgreSQL
+server, and one folder per tool. No scripts — every step is a command you can
+read and run.
 
 ```mermaid
-graph TD
-    User([User]) -->|HTTPS / *.nip.io| Traefik[Traefik Ingress Gateway]
-
-    subgraph "Control Plane Network"
-        Traefik
-        DNS[Cloudflare / Let's Encrypt]
-    end
-
-    subgraph "Modular Stacks"
-        App1[n8n Stack]
-        App2[Monitoring Stack]
-    end
-
-    subgraph "Persistence Layer"
-        DB[(PostgreSQL)]
-        Vol[(Docker Named Volumes)]
-    end
-
-    Traefik --> App1
-    Traefik --> App2
-
-    App1 --> DB
-    App2 --> DB
-
-    App1 --> Vol
-    App2 --> Vol
+graph LR
+    User -->|"https://name.APP_DOMAIN"| Traefik
+    Traefik --> Apps["grafana · prometheus · n8n · portainer · wud · pi-hole"]
+    Apps --> PG[(PostgreSQL)]
 ```
 
-## 🏗️ Stacks
+## Stacks
 
-Each folder under `stacks/` is one stack: a `docker-compose.yml` (plus a
-`conf/` folder where the tool needs a config file). All of them read their
-values from the one root `.env`.
+| Stack | URL |
+| :--- | :--- |
+| `traefik` | `https://traefik.<APP_DOMAIN>` |
+| `pgsql` | internal only |
+| `prometheus` | `https://prometheus.<APP_DOMAIN>` |
+| `grafana` | `https://grafana.<APP_DOMAIN>` |
+| `n8n` | `https://n8n.<APP_DOMAIN>` |
+| `portainer` | `https://portainer.<APP_DOMAIN>` |
+| `wud` | `https://wud.<APP_DOMAIN>` |
+| `pi-hole` | `https://pihole.<APP_DOMAIN>/admin/` |
 
-| Stack | URL | What it is |
-| :--- | :--- | :--- |
-| `traefik` | `https://traefik.<APP_DOMAIN>` | Ingress and TLS for everything else |
-| `pgsql` | — (internal only) | Shared PostgreSQL server |
-| `prometheus` | `https://prometheus.<APP_DOMAIN>` | Metrics |
-| `grafana` | `https://grafana.<APP_DOMAIN>` | Dashboards (stores its data in PostgreSQL) |
-| `n8n` | `https://n8n.<APP_DOMAIN>` | Workflow automation (stores its data in PostgreSQL) |
+`make up` starts all of them (the `STACKS` line in the `Makefile`). More
+stacks and a Cloudflare Tunnel live on the
+[`advanced`](https://github.com/chinmaymjog/cloudops-sandbox/tree/advanced)
+branch — same flow.
 
-`make up` starts the stacks named on the `STACKS` line of the `Makefile`
-(all of the above).
+Needs: macOS or Linux, Docker with `docker compose`, `git`, `make`, `openssl`.
 
-Want Portainer/WUD, or a Cloudflare Tunnel for public access without
-port-forwarding? Check out the [`advanced`
-branch](https://github.com/chinmaymjog/cloudops-sandbox/tree/advanced) - the
-same lab and the same flow, with more stacks.
+## Quick start
 
-## 📋 Prerequisites
-
-- macOS or Linux
-- Docker Desktop (Mac) or Docker Engine (Linux), with `docker compose`
-- `git`, `make`, `openssl`
-- A modern `x86_64` or `arm64` CPU
-
-## 🛠️ Quick Start
-
-### 1. Get the code
+**1. Configure**
 
 ```bash
 git clone https://github.com/chinmaymjog/cloudops-sandbox.git
 cd cloudops-sandbox
-```
-
-Fork first if you want to keep your own changes.
-
-### 2. Create `.env`
-
-```bash
 cp .env.template .env
 ```
 
-Replace each placeholder in `.env` with its own random value:
+Replace every `TODO` in `.env` with its own `openssl rand -hex 16`.
+`grep TODO .env` should print nothing.
 
-| Variable | Generate with |
-| :--- | :--- |
-| `POSTGRES_PASSWORD` | `openssl rand -hex 16` |
-| `N8N_DB_PASSWORD` | `openssl rand -hex 16` |
-| `GRAFANA_DB_PASSWORD` | `openssl rand -hex 16` |
-| `GRAFANA_ADMIN_PASSWORD` | `openssl rand -hex 16` |
-| `N8N_ENCRYPTION_KEY` | `openssl rand -hex 32` |
-
-`APP_DOMAIN=127.0.0.1.nip.io` works as-is on a laptop. For a remote VM or
-your own domain, see [Access Modes](docs/access-modes.md).
-
-> [!IMPORTANT]
-> `GRAFANA_ADMIN_PASSWORD` only takes effect on Grafana's first boot. Set it
-> before your first `make up`. To change it later:
-> `docker exec grafana grafana-cli admin reset-admin-password <new-password>`.
-
-### 3. Start PostgreSQL and create the app databases
-
-n8n and Grafana each need their own database and user. Start PostgreSQL on
-its own, wait until it accepts connections, then create them:
+**2. Create the databases** (once)
 
 ```bash
 make up STACKS=pgsql
 until docker exec postgresql pg_isready -h localhost -U postgres; do sleep 1; done
-
-set -a; source .env; set +a   # load the passwords from .env into this shell
+set -a; source .env; set +a
 
 docker exec postgresql psql -U postgres \
   -c "CREATE USER n8n WITH PASSWORD '$N8N_DB_PASSWORD';" \
@@ -125,79 +60,41 @@ docker exec postgresql psql -U postgres \
   -c "CREATE DATABASE grafana OWNER grafana;"
 ```
 
-You only do this once. The databases live in the `pgsql-data` volume and
-survive `make down`.
-
-### 4. Start everything
+**3. Start**
 
 ```bash
 make up
 make status
 ```
 
-The first run takes a few minutes while Docker pulls images. Then open:
+Open `https://grafana.127.0.0.1.nip.io` (and the other URLs above). The
+certificate warning is expected with nip.io.
 
-- `https://traefik.127.0.0.1.nip.io`
-- `https://grafana.127.0.0.1.nip.io`
-- `https://n8n.127.0.0.1.nip.io`
+- WUD and Pi-hole return `404` for ~30 seconds, until their first health check passes.
+- n8n or Grafana stuck `Restarting` with `password authentication failed` in `docker logs`: step 2 was skipped. Run it; they recover on their own.
 
-If n8n or Grafana shows `Restarting` and `docker logs <name>` says
-`password authentication failed`, step 3 was skipped — run it, and the
-container recovers on its own.
+Remote VM or your own domain: [docs/access-modes.md](docs/access-modes.md).
 
-nip.io uses a self-signed certificate, so a browser warning is expected.
-There is no login in front of the Traefik dashboard — don't expose the lab
-outside a trusted network without adding access control in front of it.
+## Add a service
 
-## ➕ Add a Service
+**1.** Copy the starter:
 
-Four steps, using [`traefik/whoami`](https://github.com/traefik/whoami) as the
-example. Swap in your own image, name and port.
-
-### 1. Write the Compose file
-
-`stacks/whoami/docker-compose.yml`:
-
-```yaml
-services:
-  whoami:
-    image: traefik/whoami:${WHOAMI_TAG}
-    container_name: whoami
-    restart: unless-stopped
-    networks:
-      - control-plane
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.whoami.rule=Host(`whoami.${APP_DOMAIN}`)
-      - traefik.http.routers.whoami.entrypoints=websecure
-      - traefik.http.routers.whoami.tls=true
-      - traefik.http.services.whoami.loadbalancer.server.port=80
-
-networks:
-  control-plane:
-    external: true
+```bash
+cp -r template stacks/myapp
 ```
 
-- Every `${VAR}` comes from the root `.env`.
-- The `traefik.*` labels give it `https://whoami.<APP_DOMAIN>`; change the
-  `port=` to the port the app listens on inside the container.
-- If it keeps data, add a named volume — copy the `volumes:` pattern from
-  `stacks/n8n/docker-compose.yml`.
+In `stacks/myapp/docker-compose.yml`, replace `myapp` with your service's
+name, then set its image and the port it listens on. As-is, it runs
+`traefik/whoami`.
 
-### 2. Add its values to `.env`
+**2.** Add its values to `.env` (and to `.env.template`, with `TODO` for secrets):
 
 ```dotenv
-WHOAMI_TAG=v1.11.0
+# --- myapp
+MYAPP_TAG=v1.11.0
 ```
 
-Need a password or key? Generate it with `openssl rand -hex 16` (or `-hex 32`)
-and add it here too. If you're committing the stack, add the same variable
-names with placeholder values to `.env.template`.
-
-### 3. Create its database (only if it uses PostgreSQL)
-
-Same commands as Quick Start step 3, with your app's name and password
-variable:
+**3.** Only if it uses PostgreSQL — add `MYAPP_DB_PASSWORD` to `.env`, then:
 
 ```bash
 set -a; source .env; set +a
@@ -206,67 +103,49 @@ docker exec postgresql psql -U postgres \
   -c "CREATE DATABASE myapp OWNER myapp;"
 ```
 
-Point the app at host `postgresql`, port `5432`, database and user `myapp`.
-
-### 4. Start it
-
-Add `whoami` to the end of the `STACKS` line in the `Makefile`, then:
+**4.** Add `myapp` to `STACKS` in the `Makefile`, then:
 
 ```bash
 make up
+curl -k https://myapp.127.0.0.1.nip.io
 ```
 
-Or start just this one stack, without touching the Makefile:
+To remove it:
 
 ```bash
-make up STACKS=whoami
-# same as: docker compose --env-file .env -f stacks/whoami/docker-compose.yml up -d
+docker compose --env-file .env -f stacks/myapp/docker-compose.yml down
+docker exec postgresql psql -U postgres -c "DROP DATABASE myapp;" -c "DROP USER myapp;"   # if it had one
 ```
 
-Check it:
+Then delete `stacks/myapp/` and take it off `STACKS`.
+
+## Commands
 
 ```bash
-docker logs --tail 50 whoami
-curl -k https://whoami.127.0.0.1.nip.io
-```
-
-### Removing a service
-
-```bash
-docker compose --env-file .env -f stacks/whoami/docker-compose.yml down
-```
-
-Then delete `stacks/whoami/`, remove it from `STACKS`, and drop its
-variables from `.env`. If it had a database:
-
-```bash
-docker exec postgresql psql -U postgres -c "DROP DATABASE myapp;" -c "DROP USER myapp;"
-```
-
-## 🧰 Everyday Commands
-
-```bash
-make up                  # start the stacks on the STACKS line
-make up STACKS=n8n       # start (or recreate) one stack
-make down                # stop every stack; data volumes are kept
+make up                  # start the STACKS list
+make up STACKS=n8n       # start or update one stack
+make down                # stop everything (data is kept)
 make status              # running containers
-docker logs -f <name>    # follow one container's logs
+docker logs -f <name>    # one container's logs
 ```
 
-After editing a stack's `docker-compose.yml` or its values in `.env`, run
-`make up` again — Compose recreates only what changed.
+After changing a `docker-compose.yml` or `.env`, run `make up` again.
 
-### Start over from scratch
-
-This deletes all data:
+Start over (deletes all data):
 
 ```bash
 make down
-docker volume rm -f pgsql-data grafana-data n8n-data prometheus-data traefik-log traefik-certs
-docker network rm control-plane
+docker volume rm -f pgsql-data grafana-data n8n-data portainer-data prometheus-data pihole-data traefik-log traefik-certs
 ```
 
-Then follow the Quick Start again from step 2.
+## Pi-hole as your network's DNS
+
+Port 53 isn't published by default (it's often taken on the host). To use it:
+uncomment `ports:` in `stacks/pi-hole/docker-compose.yml`, run
+`make up STACKS=pi-hole`, check with `nslookup doubleclick.net 127.0.0.1`
+(blocked = `0.0.0.0`), then point your devices' DNS at this machine. If port 53
+is in use on Ubuntu/Fedora, see
+[Disable systemd-resolved port 53](https://docs.pi-hole.net/docker/tips-and-tricks/#disable-systemd-resolved-port-53).
 
 ---
 *Maintained by [Chinmay Jog](https://github.com/chinmaymjog) | 📖 [Read my articles on Medium](https://medium.com/@chinmaymjog)*
