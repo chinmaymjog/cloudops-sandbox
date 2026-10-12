@@ -4,18 +4,19 @@
 
 A modular local-cloud sandbox for testing infrastructure components,
 observability stacks, and automation tools on a laptop or remote VM,
-with one-command lifecycle operations (`make setup`, `make up`, `make
-down`) and a consistent ingress/domain model across every stack.
+with simple, documented lifecycle commands (`make up`, `make down`) and a
+consistent ingress/domain model across every stack.
 
 ## Goals
 
-- One-command lifecycle: `make setup`, `make up`, `make down`.
+- Instructions over automation: every step is a command you can read and
+  run by hand; `make up` is a thin loop over `docker compose`.
 - Repeatable stack onboarding with consistent routing, env handling,
   and persistence.
 - Same workflow for local laptop and remote VM deployment.
 - A lean, good-to-get-started default stack set - see the README's
-  Stack Catalog. More (Keycloak, a second DB engine, Cloudflare Tunnel)
-  lives on the `advanced` branch instead of being on by default.
+  Stacks table. More (Portainer/WUD, Cloudflare Tunnel) lives on the
+  `advanced` branch, which follows the same flow.
 
 ## Non-Goals
 
@@ -28,8 +29,9 @@ down`) and a consistent ingress/domain model across every stack.
 
 - A new user can go from clone to a running lab in under 15 minutes,
   following only the README.
-- Onboarding a new stack needs no manual edits outside that stack's own
-  directory.
+- A new stack is defined in its own Compose file; shared runtime values live
+  in the root `.env`; new secrets and shared databases are added manually
+  using the README's OpenSSL and `docker exec` instructions.
 
 ## Risks
 
@@ -43,5 +45,6 @@ down`) and a consistent ingress/domain model across every stack.
 
 - Domain strategy is provided by the user (`nip.io` for local/remote-IP
   use, or a real domain via Cloudflare for Mode C).
-- Required environment variables are set through `.env` and stack
-  templates - see the README's "What You Edit" section.
+- Required environment variables are set through the root `.env` and
+  referenced directly from each stack's Compose YAML. New secret values are
+  generated with OpenSSL.
