@@ -1,0 +1,39 @@
+services:
+  pihole:
+    image: pihole/pihole:${PIHOLE_TAG}
+    container_name: pihole
+    hostname: pihole
+    restart: unless-stopped
+    # DNS is not published by default: port 53 is often already taken on the
+    # host (systemd-resolved on Ubuntu). To use Pi-hole as your network's DNS
+    # server, see "Use Pi-hole as your DNS" in the README.
+    # ports:
+    #   - "53:53/tcp"
+    #   - "53:53/udp"
+    volumes:
+      - pihole-data:/etc/pihole
+    networks:
+      - control-plane
+    environment:
+      TZ: ${GENERIC_TIMEZONE}
+      FTLCONF_webserver_api_password: ${PIHOLE_WEB_PASSWORD}
+      FTLCONF_dns_listeningMode: ALL
+      # Turn off two features that need extra Linux capabilities and only
+      # matter on a dedicated Pi-hole box: setting the host's clock (NTP
+      # client, needs SYS_TIME) and raising its own priority (needs SYS_NICE).
+      FTLCONF_ntp_sync_active: "false"
+      FTLCONF_misc_nice: "-999"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.pihole.rule=Host(`pihole.${APP_DOMAIN}`)
+      - traefik.http.routers.pihole.entrypoints=websecure
+      - traefik.http.routers.pihole.tls=true
+      - traefik.http.services.pihole.loadbalancer.server.port=80
+
+networks:
+  control-plane:
+    external: true
+
+volumes:
+  pihole-data:
+    name: pihole-data

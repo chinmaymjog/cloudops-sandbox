@@ -9,7 +9,7 @@
 #   make up STACKS=pgsql
 #   make up STACKS=cloudflared
 
-STACKS ?= pgsql traefik prometheus grafana n8n portainer wud
+STACKS ?= pgsql traefik prometheus grafana n8n portainer wud pi-hole
 
 .PHONY: help up down status
 
