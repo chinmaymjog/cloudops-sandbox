@@ -26,8 +26,6 @@ services:
       - traefik.http.routers.traefik.tls.domains[0].main=*.${APP_DOMAIN}
       - traefik.http.routers.traefik.tls.domains[0].sans=${APP_DOMAIN}
       - traefik.http.routers.traefik.service=api@internal
-    profiles:
-      - core
 
 networks:
   control-plane:

@@ -16,7 +16,7 @@ services:
       - N8N_PORT=5678
       - N8N_PROXY_HOPS=1
       - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
-      - TZ=${TZ}
+      - TZ=${GENERIC_TIMEZONE}
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
       # Database Configuration
       - DB_TYPE=postgresdb
@@ -34,9 +34,6 @@ services:
       - traefik.http.routers.n8n.entrypoints=websecure
       - traefik.http.routers.n8n.tls=true
       - traefik.http.services.n8n.loadbalancer.server.port=5678
-    profiles:
-      - core
-      - management
 
 networks:
   control-plane:

@@ -27,13 +27,13 @@ graph TD
     end
 
     subgraph "Modular Stacks"
-        App1[Keycloak Stack]
-        App2[n8n Stack]
-        App3[Monitoring Stack]
+        App1[n8n Stack]
+        App2[Monitoring Stack]
+        App3[Management Stack]
     end
 
     subgraph "Persistence Layer"
-        DB[(Shared PostgreSQL/MySQL)]
+        DB[(PostgreSQL)]
         Vol[(Docker Named Volumes)]
     end
 
@@ -49,17 +49,15 @@ graph TD
 ```
 
 #### 🏗️ Modular "Stacks"
-Instead of one massive, monolithic compose file, each tool (Keycloak, n8n, Prometheus) is its own **Stack**. They are isolated but connected via a unified `control-plane` network. This makes it trivial to add, remove, or swap tools without breaking the rest of the lab.
+Instead of one massive, monolithic compose file, each tool (n8n, Prometheus, Portainer) is its own **Stack**. They are isolated but connected via a unified `control-plane` network. This makes it easy to add or remove tools without changing unrelated stacks.
 
 #### 🛡️ Unified Ingress with Real SSL
 Accessing services via `localhost:8080` is a friction point. I integrated **Traefik** as a centralized gateway.
 - **Public Domain**: Uses Cloudflare DNS-01 challenges to issue real, valid Let’s Encrypt wildcard certificates.
 - **Offline/Zero-Config**: Supports **nip.io** for instant, domain-based routing (e.g., `traefik.127.0.0.1.nip.io`) without manual DNS or `/etc/hosts` edits.
 
-#### 🐘 Idempotent Database Bootstrapping
-One of the hardest parts of a local lab is managing database credentials and users. I developed a **`sync-dbs`** workflow:
-- **On-Initial-Boot**: Scripts in `init-db.d` provision everything automatically.
-- **On-Demand**: A simple `make sync-dbs` command allows you to add a new app and its database to a *running* lab without restarting the database engine or wiping volumes.
+#### 🐘 Database Setup
+Each app that uses PostgreSQL gets its own user and database, created with two `docker exec ... psql` commands from the README - the same commands for the built-in n8n and Grafana databases as for any service you add later.
 
 That onboarding path is now part of the documented repository workflow, so adding a new app follows the same pattern each time instead of depending on tribal knowledge.
 
@@ -67,11 +65,10 @@ That onboarding path is now part of the documented repository workflow, so addin
 
 ### Key Technical Features
 - **Cross-Platform Persistence**: By moving to **Docker Named Volumes**, I eliminated the permission headaches common with bind mounts on Mac and Linux.
-- **The "Setup" Pattern**: A root-level `.env` propagates variables to every stack via `envsubst`, ensuring a single source of truth for credentials.
+- **The "Setup" Pattern**: Each stack's Compose YAML defines its service configuration, and every stack reads the one root `.env`. New secrets are generated with OpenSSL and added to `.env`.
 - **Developer Experience (DX)**: The entire lifecycle is managed via a minimalist Makefile:
-    - `make setup`: Initialize your environment.
-    - `make up`: Spin up the infrastructure.
-    - `make sync-dbs`: Provision new databases on the fly.
+    - `make up`: Create the shared network and spin up the infrastructure.
+    - `docker exec`: Create a database and user for a new service.
 
 ---
 
