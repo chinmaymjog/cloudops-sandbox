@@ -1,0 +1,35 @@
+# Starter for a new stack. Copy it to stacks/<name>/ and replace every
+# "myapp" / "MYAPP" with <name>. As-is it runs traefik/whoami, so you can
+# see it work before swapping in your own image. See README > Add a service.
+services:
+  myapp:
+    # Your app's image. Set MYAPP_TAG in .env.
+    image: traefik/whoami:${MYAPP_TAG}
+    container_name: myapp
+    restart: unless-stopped
+    # Settings for the app. ${VARS} come from .env.
+    # environment:
+    #   DB_HOST: postgresql
+    #   DB_NAME: myapp
+    #   DB_USER: myapp
+    #   DB_PASSWORD: ${MYAPP_DB_PASSWORD}
+    # Keep the app's data across restarts (also uncomment volumes: below).
+    # volumes:
+    #   - myapp-data:/data
+    networks:
+      - control-plane
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.myapp.rule=Host(`myapp.${APP_DOMAIN}`)
+      - traefik.http.routers.myapp.entrypoints=websecure
+      - traefik.http.routers.myapp.tls=true
+      # The port your app listens on inside the container.
+      - traefik.http.services.myapp.loadbalancer.server.port=80
+
+networks:
+  control-plane:
+    external: true
+
+# volumes:
+#   myapp-data:
+#     name: myapp-data
