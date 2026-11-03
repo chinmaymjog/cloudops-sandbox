@@ -1,8 +1,8 @@
 ################################################################
 #
-# Configuration sample for Traefik v2.
+# Traefik static configuration for CloudOps-Sandbox.
 #
-# For Traefik v1: https://github.com/traefik/traefik/blob/v1.7/traefik.sample.toml
+# Only containers with the label traefik.enable=true are routed.
 #
 ################################################################
 
@@ -11,7 +11,7 @@
 ################################################################
 global:
   checkNewVersion: true
-  sendAnonymousUsage: true
+  sendAnonymousUsage: false
 
 ################################################################
 # EntryPoints configuration
@@ -134,7 +134,8 @@ dashboard: true
 
 providers:
   # Enable Docker configuration backend
-  docker: {}
+  docker:
+    exposedByDefault: false
     # Docker server endpoint. Can be a tcp or a unix socket endpoint.
     #
     # Required
