@@ -19,6 +19,7 @@ help:
 	@echo "make status  list running containers"
 
 up:
+	@test -f .env || { echo "Missing .env: run 'cp .env.template .env' first (see README)"; exit 1; }
 	@docker network inspect control-plane >/dev/null 2>&1 || docker network create control-plane
 	@for s in $(STACKS); do \
 		echo "==> $$s"; \
@@ -26,6 +27,7 @@ up:
 	done
 
 down:
+	@test -f .env || { echo "Missing .env: run 'cp .env.template .env' first (see README)"; exit 1; }
 	@for s in $(notdir $(wildcard stacks/*)); do \
 		echo "==> $$s"; \
 		docker compose --env-file .env -f stacks/$$s/docker-compose.yml down || exit 1; \

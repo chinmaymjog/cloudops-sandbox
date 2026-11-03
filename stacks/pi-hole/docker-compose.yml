@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     # DNS is not published by default: port 53 is often already taken on the
     # host (systemd-resolved on Ubuntu). To use Pi-hole as your network's DNS
-    # server, see "Use Pi-hole as your DNS" in the README.
+    # server, see "Pi-hole as your network's DNS" in the README.
     # ports:
     #   - "53:53/tcp"
     #   - "53:53/udp"
