@@ -43,8 +43,10 @@ while IFS= read -r line; do
   fi
 done < .env.template > .env
 
-echo "==> make up: $STACKS"
-make up STACKS="$STACKS"
+# Follow the README order: start Postgres, create the per-app roles and
+# databases, then start everything else (n8n and Grafana need their database).
+echo "==> make up: pgsql"
+make up STACKS=pgsql
 
 echo "==> wait for postgres to be healthy"
 for _ in $(seq 1 60); do
@@ -53,6 +55,20 @@ for _ in $(seq 1 60); do
 done
 [ "$(docker inspect -f '{{.State.Health.Status}}' postgresql)" = "healthy" ] \
   || { echo "FAIL: postgresql not healthy"; exit 1; }
+
+echo "==> create app databases (README step 2)"
+set -a; . ./.env; set +a
+for app in n8n grafana; do
+  case " $STACKS " in *" $app "*) ;; *) continue ;; esac
+  pw_var="$(printf '%s' "$app" | tr '[:lower:]' '[:upper:]')_DB_PASSWORD"
+  docker exec postgresql psql -U postgres -v ON_ERROR_STOP=1 \
+    -c "CREATE USER $app WITH PASSWORD '${!pw_var}';" \
+    -c "CREATE DATABASE $app OWNER $app;"
+done
+
+rest="${STACKS//pgsql/}"
+echo "==> make up:$rest"
+make up STACKS="$rest"
 
 # Each web UI must answer through Traefik (Host-based routing, self-signed TLS).
 # 404 means Traefik has no router for the host; 502/503 means the backend is down.
