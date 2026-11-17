@@ -54,6 +54,7 @@ jobs:
       security-events: write # upload SARIF to the Security tab
     strategy:
       fail-fast: false
+      max-parallel: 3 # avoid registry rate limits on unauthenticated pulls
       matrix:
         image: ${{ fromJSON(needs.list-images.outputs.images) }}
     steps:
