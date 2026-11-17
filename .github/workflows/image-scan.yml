@@ -35,12 +35,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+      # docker.n8n.io is a mirror of Docker Hub that rate-limits unauthenticated
+      # pulls from CI runners; scan the same image from Docker Hub instead.
       - name: Resolve images from compose files
         id: list
         run: |
           images=$(for f in stacks/*/docker-compose.yml; do
             docker compose --env-file .env.template -f "$f" config --images
-          done | sort -u | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          done | sed 's#^docker.n8n.io/#docker.io/#' | sort -u | jq -R -s -c 'split("\n") | map(select(length > 0))')
           echo "Images: $images"
           echo "images=$images" >> "$GITHUB_OUTPUT"
 
