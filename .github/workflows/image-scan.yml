@@ -1,0 +1,85 @@
+name: Image scan
+
+# Scans every image referenced by stacks/*/docker-compose.yml (tags resolved
+# from .env.template) with Trivy. Fails on fixable HIGH/CRITICAL findings;
+# unfixed ones are ignored. Also runs weekly because new CVEs are disclosed
+# against unchanged images. Not a required check: it is path-filtered on PRs.
+on:
+  pull_request:
+    paths:
+      - stacks/**
+      - template/**
+      - .env.template
+      - .github/workflows/image-scan.yml
+  push:
+    branches: [main]
+  schedule:
+    - cron: "37 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: image-scan-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  list-images:
+    name: List images
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      images: ${{ steps.list.outputs.images }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Resolve images from compose files
+        id: list
+        run: |
+          images=$(for f in stacks/*/docker-compose.yml; do
+            docker compose --env-file .env.template -f "$f" config --images
+          done | sort -u | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "Images: $images"
+          echo "images=$images" >> "$GITHUB_OUTPUT"
+
+  trivy:
+    name: Trivy (${{ matrix.image }})
+    needs: list-images
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write # upload SARIF to the Security tab
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJSON(needs.list-images.outputs.images) }}
+    steps:
+      - name: Scan (SARIF report)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ matrix.image }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          limit-severities-for-sarif: true
+          exit-code: "0"
+
+      - name: Upload report to Security tab
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-${{ matrix.image }}
+
+      - name: Scan (fail on fixable HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ matrix.image }}
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
